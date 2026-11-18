@@ -4,11 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    VitePWA({
+    // En la app nativa (Capacitor) no hace falta service worker.
+    mode !== 'native' && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon.svg'],
       manifest: {
@@ -39,4 +40,4 @@ export default defineConfig({
   ],
   build: { chunkSizeWarningLimit: 600 },
   test: { environment: 'jsdom', globals: true },
-})
+}))
