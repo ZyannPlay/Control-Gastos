@@ -13,6 +13,10 @@ export default function TransactionItem({ tx, category }: { tx: Transaction; cat
   const other = tx.currency === 'ARS' ? 'USD' : 'ARS'
   const eq = convert(tx.amount, tx.currency, other, tx.fx_rate)
   const isExp = tx.type === 'expense'
+  const noteHasCuota = /\(cuota\s*\d+\s*\/\s*\d+\)/i.test(tx.note ?? '')
+  const badge = tx.installment_number
+    ? (noteHasCuota ? 'Cuota' : `Cuota ${tx.installment_number}`)
+    : tx.recurring_id ? 'Fijo' : null
   return (
     <Link
       to={`/editar/${tx.id}`}
@@ -25,7 +29,12 @@ export default function TransactionItem({ tx, category }: { tx: Transaction; cat
         {category?.icon ?? '❓'}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{tx.note || category?.name || 'Sin categoría'}</span>
+        <span className="flex items-center gap-1.5 text-sm font-medium">
+          <span className="truncate">{tx.note || category?.name || 'Sin categoría'}</span>
+          {badge && (
+            <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800 dark:bg-teal-950 dark:text-teal-300">{badge}</span>
+          )}
+        </span>
         <span className="block truncate text-xs text-slate-500">
           {tx.note && category ? `${category.name} · ` : ''}{fmtShort.format(parseLocalDate(tx.date))}
         </span>

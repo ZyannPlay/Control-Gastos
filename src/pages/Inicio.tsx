@@ -5,6 +5,11 @@ import { useFxRate } from '../hooks/useFxRate'
 import { convert, formatMoney } from '../lib/fx'
 import TransactionItem from '../components/TransactionItem'
 import { monthLabel } from '../lib/stats'
+import { useRecurring } from '../hooks/useRecurring'
+import { nextOccurrence } from '../lib/recurring'
+import { parseLocalDate } from '../components/TransactionItem'
+
+const fmtDay = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
 
 function currentMonth() {
   const d = new Date()
@@ -16,6 +21,7 @@ export default function Inicio() {
   const { transactions, loading, error } = useTransactions({ month })
   const { categories, error: catError } = useCategories()
   const { rate } = useFxRate()
+  const { rules } = useRecurring()
 
   const toArs = (t: { amount: number; currency: 'ARS' | 'USD'; fx_rate: number }) => convert(t.amount, t.currency, 'ARS', t.fx_rate)
   const income = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + toArs(t), 0)
@@ -28,6 +34,13 @@ export default function Inicio() {
     .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))
     .slice(0, 5)
   const catById = new Map(categories.map((c) => [c.id, c]))
+  const now = new Date()
+  const upcoming = rules
+    .filter((r) => r.active)
+    .map((r) => ({ r, next: nextOccurrence(r, now) }))
+    .filter((x): x is { r: typeof rules[number]; next: NonNullable<ReturnType<typeof nextOccurrence>> } => !!x.next && x.next.date.startsWith(month))
+    .sort((a, b) => a.next.date.localeCompare(b.next.date))
+    .slice(0, 3)
 
   return (
     <div className="px-4 pt-4">
@@ -70,6 +83,38 @@ export default function Inicio() {
           + Agregar gasto
         </Link>
       </div>
+
+      {rules.length === 0 ? (
+        <Link to="/fijos" className="mt-4 block rounded-2xl bg-white p-3 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+          🔁 Cargá tus gastos fijos (alquiler, servicios) y compras en cuotas <span className="text-emerald-600 dark:text-emerald-400">›</span>
+        </Link>
+      ) : upcoming.length > 0 && (
+        <section className="mt-4 rounded-2xl bg-white p-3 dark:bg-slate-900">
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="font-semibold">Próximos fijos y cuotas</h2>
+            <Link to="/fijos" className="grid min-h-[44px] place-items-center text-sm text-emerald-600 dark:text-emerald-400">Ver todos</Link>
+          </div>
+          <ul className="space-y-1">
+            {upcoming.map(({ r, next }) => {
+              const cat = r.category_id ? catById.get(r.category_id) : null
+              return (
+                <li key={r.id} className="flex items-center gap-3 text-sm">
+                  <span className="text-xl">{cat?.icon ?? '❓'}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{r.note || cat?.name || 'Sin categoría'}</span>
+                    <span className="block text-xs text-slate-500">
+                      {fmtDay.format(parseLocalDate(next.date))}{next.installment_number ? ` · Cuota ${next.installment_number}${r.installments_total ? `/${r.installments_total}` : ''}` : ''}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 font-semibold ${r.type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {r.type === 'expense' ? '-' : '+'}{formatMoney(r.amount, r.currency)}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-6">
         <div className="mb-2 flex items-center justify-between">

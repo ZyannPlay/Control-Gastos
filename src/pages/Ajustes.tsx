@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
@@ -67,6 +68,11 @@ export default function Ajustes() {
           <div className="mt-1 text-slate-500">Cargando…</div>
         )}
       </section>
+
+      <Link to="/fijos" className={`${card} flex min-h-12 items-center justify-between font-medium text-slate-900 dark:text-slate-100`}>
+        <span>🔁 Fijos y cuotas</span>
+        <span aria-hidden="true" className="text-slate-400">›</span>
+      </Link>
 
       <section className={`${card} space-y-3`}>
         <h2 className="font-semibold text-slate-900 dark:text-slate-100">Categorías</h2>
