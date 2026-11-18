@@ -4,6 +4,7 @@ import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
 import { convert, formatMoney } from '../lib/fx'
 import TransactionItem from '../components/TransactionItem'
+import { monthLabel } from '../lib/stats'
 
 function currentMonth() {
   const d = new Date()
@@ -22,7 +23,7 @@ export default function Inicio() {
   const balance = income - expense
   const usd = (ars: number) => (rate ? formatMoney(convert(ars, 'ARS', 'USD', rate.venta), 'USD') : '—')
 
-  const monthLabel = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(new Date())
+  const monthTitle = monthLabel(month)
   const recent = [...transactions]
     .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))
     .slice(0, 5)
@@ -33,7 +34,7 @@ export default function Inicio() {
       <header className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-slate-500">Mis Gastos</p>
-          <h1 className="text-2xl font-bold capitalize">{monthLabel}</h1>
+          <h1 className="text-2xl font-bold capitalize">{monthTitle}</h1>
         </div>
         <Link to="/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center rounded-full bg-slate-200 dark:bg-slate-800">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

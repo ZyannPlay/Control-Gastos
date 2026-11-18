@@ -88,3 +88,8 @@ $$;
 create trigger on_auth_user_created_seed_categories
   after insert on auth.users
   for each row execute function public.seed_default_categories();
+
+-- Permisos de la Data API (los proyectos nuevos de Supabase no los otorgan automáticamente).
+-- RLS sigue limitando cada fila a su dueño.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.categories, public.transactions, public.budgets to authenticated;
