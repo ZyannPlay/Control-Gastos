@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { LogIn, Wallet } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { Button, Icon, Segmented } from '../components/ui'
 
 export default function Login() {
   const { signIn, signUp, signInWithGoogle } = useAuth()
@@ -26,50 +28,47 @@ export default function Login() {
     if (err) setError(err)
   }
 
-  const input = 'min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-4 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900'
+  const input = 'h-12 w-full rounded-control border border-line-strong bg-surface px-4 text-[15px] text-fg outline-none transition-colors placeholder:text-fg-3 focus:border-accent'
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-10">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-2xl bg-emerald-600 text-3xl">💸</div>
-        <h1 className="text-3xl font-bold">Mis Gastos</h1>
-        <p className="mt-1 text-sm text-slate-500">Controlá tus gastos en pesos y dólares</p>
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-10">
+      <div className="mb-8">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-control bg-accent text-on-accent"><Icon icon={Wallet} size={20} /></span>
+          <span className="text-[18px] leading-none font-medium">Mis Gastos</span>
+        </div>
+        <h1 className="text-[28px] leading-8 font-medium tracking-[-0.01em]">Tus gastos en pesos y dólares</h1>
+        <p className="mt-2 text-[15px] text-fg-2">Cada movimiento con su equivalente al dólar blue del día</p>
       </div>
 
-      <div className="mb-4 flex rounded-full bg-slate-200 p-1 dark:bg-slate-800" role="tablist">
-        {(['in', 'up'] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            onClick={() => { setMode(m); setError(null); setInfo(null) }}
-            className={`min-h-[44px] flex-1 rounded-full text-sm font-semibold ${mode === m ? 'bg-white shadow dark:bg-slate-600' : 'text-slate-500'}`}
-          >
-            {m === 'in' ? 'Ingresar' : 'Crear cuenta'}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Modo"
+        className="mb-4"
+        value={mode}
+        onChange={(m) => { setMode(m); setError(null); setInfo(null) }}
+        options={[{ value: 'in', label: 'Ingresar' }, { value: 'up', label: 'Crear cuenta' }]}
+      />
 
       <form onSubmit={submit} className="space-y-3">
         <input type="email" required autoComplete="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} />
         <input type="password" required minLength={mode === 'up' ? 6 : undefined} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} placeholder="Contraseña" value={pw} onChange={(e) => setPw(e.target.value)} className={input} />
-        {error && <p className="rounded-xl bg-red-100 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300" role="alert">{error}</p>}
-        {info && <p className="rounded-xl bg-emerald-100 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">{info}</p>}
-        <button type="submit" disabled={busy} className="min-h-[48px] w-full rounded-xl bg-emerald-600 font-semibold text-white disabled:opacity-60">
+        {error && <p className="rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-neg" role="alert">{error}</p>}
+        {info && <p className="rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-fg-2">{info}</p>}
+        <Button type="submit" block disabled={busy} className="h-12">
           {busy ? 'Un momento…' : mode === 'in' ? 'Ingresar' : 'Crear cuenta'}
-        </button>
+        </Button>
       </form>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
-        <span className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />o<span className="h-px flex-1 bg-slate-300 dark:bg-slate-700" />
+      <div className="my-5 flex items-center gap-3 text-[13px] text-fg-3">
+        <span className="h-px flex-1 bg-line-strong" />o<span className="h-px flex-1 bg-line-strong" />
       </div>
 
-      <button type="button" onClick={google} className="min-h-[48px] w-full rounded-xl border border-slate-300 bg-white font-semibold dark:border-slate-700 dark:bg-slate-900">
+      <Button type="button" variant="secondary" block onClick={google} className="h-12">
+        <Icon icon={LogIn} />
         Continuar con Google
-      </button>
+      </Button>
 
-      <Link to="/privacidad" className="mt-6 inline-flex min-h-[44px] items-center justify-center text-xs text-slate-500 underline dark:text-slate-400">
+      <Link to="/privacidad" className="mt-6 inline-flex min-h-[44px] items-center justify-center text-[13px] text-fg-3 underline transition-colors hover:text-fg-2">
         Política de privacidad
       </Link>
     </div>
