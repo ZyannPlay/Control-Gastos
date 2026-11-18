@@ -1,3 +1,4 @@
+import { softBreak } from '../lib/format'
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import AmountInput from '../components/AmountInput'
@@ -172,15 +173,15 @@ export default function Fijos() {
             <div className="flex items-start gap-3">
               <CategoryIcon category={cat} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] leading-5">{r.note || cat?.name || 'Sin categoría'}</span>
-                <span className="mt-1 block text-[13px] leading-5 text-fg-3">
-                  {r.note && cat ? `${cat.name} · ` : ''}{next ? `Próximo: ${fmtDay.format(parseLocalDate(next.date))}` : 'Finalizado'}
+                <span className="line-clamp-2 text-[15px] leading-5 break-words">{r.note || cat?.name || 'Sin categoría'}</span>
+                <span className="mt-1 block text-[13px] leading-5 break-words text-fg-3">
+                  {r.note && cat ? `${softBreak(cat.name)} · ` : ''}{next ? `Próximo: ${fmtDay.format(parseLocalDate(next.date))}` : 'Finalizado'}
                   {` · ${r.kind === 'fixed' ? 'por mes' : 'por cuota'}`}
                 </span>
               </span>
               <span className="shrink-0 text-right">
                 <Money kind={isExp ? 'expense' : 'income'} amount={r.amount} currency={r.currency} className="block text-[15px] leading-5 font-medium" />
-                {fx !== null && <Equiv amount={convert(r.amount, r.currency, other, fx)} currency={other} />}
+                {fx !== null && <Equiv amount={convert(r.amount, r.currency, other, fx)} currency={other} className="block" />}
               </span>
             </div>
             {prog && (

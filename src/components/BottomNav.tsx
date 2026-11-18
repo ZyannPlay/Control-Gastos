@@ -10,7 +10,7 @@ const items = [
 ]
 
 const linkCls = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[11px] leading-4 font-medium transition-colors ${
+  `flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] leading-4 font-medium transition-colors ${
     isActive ? 'text-fg' : 'text-fg-3 hover:text-fg-2'
   }`
 
@@ -23,10 +23,10 @@ export default function BottomNav() {
       <div className="mx-auto flex max-w-md items-center px-2">
         {items.slice(0, 2).map((i) => (
           <NavLink key={i.to} to={i.to} end={i.end} className={linkCls}>
-            {({ isActive }) => (<><span className={isActive ? 'text-accent-ink' : ''}><Icon icon={i.icon} size={20} /></span><span>{i.label}</span></>)}
+            {({ isActive }) => (<><span className={isActive ? 'text-accent-ink' : ''}><Icon icon={i.icon} size={20} /></span><span className="block max-w-full truncate px-0.5">{i.label}</span></>)}
           </NavLink>
         ))}
-        <div className="flex flex-1 justify-center">
+        <div className="flex shrink-0 justify-center px-2">
           <NavLink
             to="/nuevo"
             aria-label="Agregar movimiento"
@@ -37,7 +37,7 @@ export default function BottomNav() {
         </div>
         {items.slice(2).map((i) => (
           <NavLink key={i.to} to={i.to} className={linkCls}>
-            {({ isActive }) => (<><span className={isActive ? 'text-accent-ink' : ''}><Icon icon={i.icon} size={20} /></span><span>{i.label}</span></>)}
+            {({ isActive }) => (<><span className={isActive ? 'text-accent-ink' : ''}><Icon icon={i.icon} size={20} /></span><span className="block max-w-full truncate px-0.5">{i.label}</span></>)}
           </NavLink>
         ))}
       </div>

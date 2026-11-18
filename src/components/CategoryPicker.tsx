@@ -1,3 +1,4 @@
+import { softBreak } from '../lib/format'
 import type { Category, TxType } from '../lib/types'
 import { CategoryIcon } from './ui'
 
@@ -12,7 +13,7 @@ export default function CategoryPicker({ categories, type, value, onChange }: Pr
   const list = categories.filter((c) => c.type === type)
   if (list.length === 0) return <p className="text-[13px] text-fg-3">No hay categorías para este tipo</p>
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
       {list.map((c) => {
         const sel = value === c.id
         return (
@@ -26,7 +27,7 @@ export default function CategoryPicker({ categories, type, value, onChange }: Pr
             }`}
           >
             <CategoryIcon category={c} size={28} />
-            <span className="w-full truncate text-[13px] leading-4 text-fg">{c.name}</span>
+            <span className="line-clamp-2 w-full text-center text-[13px] leading-4 break-words text-fg">{softBreak(c.name)}</span>
           </button>
         )
       })}

@@ -22,18 +22,17 @@ export default function TransactionItem({ tx, category }: { tx: Transaction; cat
   return (
     <Link
       to={`/editar/${tx.id}`}
-      className="flex h-16 items-center gap-3 px-4 transition-colors hover:bg-raised active:bg-raised"
+      className="flex min-h-16 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-raised active:bg-raised"
     >
       <CategoryIcon category={category} />
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2 text-[15px] leading-5">
-          <span className="truncate">{tx.note || category?.name || 'Sin categoría'}</span>
+        {/* Con letra grande el título pasa a 2 líneas en vez de cortarse */}
+        <span className="line-clamp-2 text-[15px] leading-5 break-words">{tx.note || category?.name || 'Sin categoría'}</span>
+        <span className="flex flex-wrap items-center gap-x-2 text-[13px] leading-5 text-fg-3">
+          <span className="min-w-0 truncate">{tx.note && category ? `${category.name} · ` : ''}{fmtMeta(tx.date)}</span>
           {badge && (
-            <span className="shrink-0 rounded-tag bg-raised px-1.5 py-0.5 font-mono text-[11px] leading-4 text-fg-3">{badge}</span>
+            <span className="shrink-0 rounded-tag bg-raised px-1.5 font-mono text-[11px] leading-4 text-fg-3">{badge}</span>
           )}
-        </span>
-        <span className="block truncate text-[13px] leading-5 text-fg-3">
-          {tx.note && category ? `${category.name} · ` : ''}{fmtMeta(tx.date)}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end">

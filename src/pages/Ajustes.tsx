@@ -195,7 +195,7 @@ export default function Ajustes() {
               </Button>
             </div>
           </Card>
-          <div className="pt-4 text-center font-mono text-[12px] leading-4 text-fg-3">Versión 1.1.0</div>
+          <div className="pt-4 text-center font-mono text-[12px] leading-4 text-fg-3">Versión 1.1.1</div>
         </section>
       </div>
 

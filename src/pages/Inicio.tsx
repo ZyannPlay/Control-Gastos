@@ -64,11 +64,11 @@ export default function Inicio() {
           <Money amount={balance} currency="ARS" className="block text-[40px] leading-[44px] font-medium tracking-[-0.02em]" />
           {eqArs(balance, 'mt-1 block')}
         </section>
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3 font-mono text-[13px] leading-4" aria-label="Dólar blue">
-          <span className="font-sans text-fg-3">Dólar blue</span>
-          <dl className="flex gap-4">
-            <div className="flex gap-2"><dt className="text-fg-3">Compra</dt><dd className="num text-fg">{rate ? formatMoney(rate.compra, 'ARS') : '—'}</dd></div>
-            <div className="flex gap-2"><dt className="text-fg-3">Venta</dt><dd className="num text-fg">{rate ? formatMoney(rate.venta, 'ARS') : '—'}</dd></div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line pt-3 font-mono text-[13px] leading-4" aria-label="Dólar blue">
+          <span className="font-sans whitespace-nowrap text-fg-3">Dólar blue</span>
+          <dl className="flex flex-wrap gap-x-4 gap-y-1">
+            <div className="flex gap-2 whitespace-nowrap"><dt className="text-fg-3">Compra</dt><dd className="num text-fg">{rate ? formatMoney(rate.compra, 'ARS') : '—'}</dd></div>
+            <div className="flex gap-2 whitespace-nowrap"><dt className="text-fg-3">Venta</dt><dd className="num text-fg">{rate ? formatMoney(rate.venta, 'ARS') : '—'}</dd></div>
           </dl>
         </div>
       </Card>

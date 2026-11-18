@@ -85,7 +85,7 @@ export default function Reportes() {
           <p className="num font-mono text-[12px] leading-4 text-fg-3">Dólar blue venta de hoy: {formatMoney(fx, 'ARS')}</p>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
           <Card className="min-w-0">
             <div className="text-[13px] leading-5 text-fg-2">Gastos</div>
             <div className="mt-1">
@@ -100,7 +100,7 @@ export default function Reportes() {
             </div>
             {fx !== null && <div><Equiv amount={viewOther(totals.income)} currency={other} /></div>}
           </Card>
-          <Card pad={false} className="col-span-2 flex h-12 items-center justify-between px-5">
+          <Card pad={false} className="col-span-full flex h-12 items-center justify-between px-5">
             <span className="text-[13px] text-fg-2">Ahorro</span>
             <span className={`num text-[15px] font-medium ${totals.income > 0 && savings < 0 ? 'text-neg' : ''}`}>
               {totals.income > 0 ? `${Math.round(savings)}%` : '—'}
