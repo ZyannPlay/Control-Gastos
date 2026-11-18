@@ -1,7 +1,7 @@
 // Textos legales de Mis Gastos. Se muestran en las páginas públicas /privacidad y /eliminar-cuenta.
-// CONTACT_EMAIL es un placeholder: reemplazarlo antes de publicar.
+// Email de contacto público (ficha de Google Play y política de privacidad).
 
-export const CONTACT_EMAIL = 'CONTACTO@EJEMPLO.COM'
+export const CONTACT_EMAIL = 'migu3lmendz@gmail.com'
 
 export const privacyPolicy: {
   title: string

@@ -9,7 +9,7 @@ export async function deleteMyAccount(): Promise<string | null> {
   const { error } = await supabase.rpc('delete_my_account')
   if (error) return toSpanishError(error)
   try {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' }) // el usuario ya no existe en el servidor
   } catch {
     // el usuario ya no existe; ignoramos
   }
