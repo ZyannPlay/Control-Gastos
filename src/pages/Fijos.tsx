@@ -1,7 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import AmountInput from '../components/AmountInput'
 import CategoryPicker from '../components/CategoryPicker'
+import { Button } from '../components/ui/Button'
+import { Card, SectionTitle } from '../components/ui/Card'
+import { CategoryIcon } from '../components/ui/CategoryIcon'
+import { Icon } from '../components/ui/Icon'
+import { Equiv, Money } from '../components/ui/Money'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Sheet } from '../components/ui/Sheet'
 import { parseLocalDate } from '../components/TransactionItem'
 import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
@@ -33,8 +40,28 @@ interface Draft {
   note: string
 }
 
-const field = 'mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
-const seg = (on: boolean) => `h-11 flex-1 font-medium ${on ? 'bg-teal-700 text-white' : 'text-slate-700 dark:text-slate-200'}`
+const field = 'mt-1 h-11 w-full rounded-control border border-line-strong bg-surface px-3 text-[15px] text-fg placeholder:text-fg-3'
+const label = 'block text-[13px] leading-5 text-fg-2'
+
+/** Control segmentado con opción deshabilitable (al editar no se cambia el tipo de regla). */
+function Seg({ label: aria, options, value, onChange, disabled }: {
+  label: string; options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; disabled?: boolean
+}) {
+  return (
+    <div role="group" aria-label={aria} className={`flex rounded-control bg-raised p-1 ${disabled ? 'opacity-60' : ''}`}>
+      {options.map((o) => (
+        <button
+          key={o.value} type="button" disabled={disabled} aria-pressed={value === o.value} onClick={() => onChange(o.value)}
+          className={`h-9 flex-1 rounded-[6px] px-3 text-[14px] font-medium transition-colors duration-150 ease-soft ${
+            value === o.value ? 'bg-surface text-fg shadow-sm ring-1 ring-line' : 'text-fg-3 hover:text-fg-2'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export default function Fijos() {
   const { rules, loading, error, add, update, remove } = useRecurring()
@@ -48,13 +75,6 @@ export default function Fijos() {
   const [busy, setBusy] = useState(false)
 
   const catMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
-
-  useEffect(() => {
-    if (!draft) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDraft(null) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [draft])
 
   const fixed = rules.filter((r) => r.kind === 'fixed')
   const inst = rules.filter((r) => r.kind === 'installments')
@@ -144,138 +164,125 @@ export default function Fijos() {
     const prog = r.kind === 'installments' ? installmentProgress(r, today) : null
     const pct = prog && prog.total > 0 ? Math.min(100, (prog.paid / prog.total) * 100) : 0
     const isExp = r.type === 'expense'
+    const other = r.currency === 'ARS' ? 'USD' : 'ARS'
     return (
-      <li key={r.id} className={`rounded-2xl bg-white shadow-sm dark:bg-slate-800 ${r.active ? '' : 'opacity-60'}`}>
-        <div className="flex items-stretch">
-          <button type="button" onClick={() => openEdit(r)} className="min-h-[56px] min-w-0 flex-1 p-3 text-left">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-xl" style={{ backgroundColor: (cat?.color ?? '#94a3b8') + '33' }}>
-                {cat?.icon ?? '❓'}
-              </span>
+      <li key={r.id}>
+        <Card pad={false} className={r.active ? '' : 'opacity-60'}>
+          <button type="button" onClick={() => openEdit(r)} className="block min-h-14 w-full rounded-t-card p-5 text-left transition-colors hover:bg-raised">
+            <div className="flex items-start gap-3">
+              <CategoryIcon category={cat} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">{r.note || cat?.name || 'Sin categoría'}</span>
-                <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                <span className="block truncate text-[15px] leading-5">{r.note || cat?.name || 'Sin categoría'}</span>
+                <span className="mt-1 block text-[13px] leading-5 text-fg-3">
                   {r.note && cat ? `${cat.name} · ` : ''}{next ? `Próximo: ${fmtDay.format(parseLocalDate(next.date))}` : 'Finalizado'}
+                  {` · ${r.kind === 'fixed' ? 'por mes' : 'por cuota'}`}
                 </span>
               </span>
               <span className="shrink-0 text-right">
-                <span className={`block text-sm font-semibold ${isExp ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                  {isExp ? '-' : '+'}{formatMoney(r.amount, r.currency)}
-                </span>
-                <span className="block text-xs text-slate-500 dark:text-slate-400">{r.kind === 'fixed' ? 'por mes' : 'por cuota'}</span>
+                <Money kind={isExp ? 'expense' : 'income'} amount={r.amount} currency={r.currency} className="block text-[15px] leading-5 font-medium" />
+                {fx !== null && <Equiv amount={convert(r.amount, r.currency, other, fx)} currency={other} />}
               </span>
             </div>
             {prog && (
-              <div className="mt-2">
-                <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                  <div className="h-full rounded-full bg-teal-600" style={{ width: `${pct}%` }} />
+              <div className="mt-4">
+                <div className="h-1.5 overflow-hidden rounded-full bg-raised">
+                  <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
                 </div>
-                <div className="mt-1 flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>{prog.paid} de {prog.total} cuotas pagas{next?.installment_number ? ` · próxima: ${next.installment_number}` : ""}</span>
+                <div className="num mt-2 flex flex-wrap justify-between gap-x-3 font-mono text-[12px] leading-4 text-fg-3">
+                  <span>{prog.paid} de {prog.total} cuotas pagas{next?.installment_number ? ` · próxima: ${next.installment_number}` : ''}</span>
                   <span>Total: {formatMoney(Math.round(r.amount * prog.total * 100) / 100, r.currency)}</span>
                 </div>
               </div>
             )}
           </button>
-        </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-3 dark:border-slate-700">
-          <span className="text-sm text-slate-600 dark:text-slate-300">{r.active ? 'Activo' : 'Pausado'}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={r.active}
-            aria-label={`${r.active ? 'Pausar' : 'Activar'} ${r.note || cat?.name || 'regla'}`}
-            onClick={() => void toggle(r)}
-            className="grid h-11 w-14 place-items-center"
-          >
-            <span className={`flex h-7 w-12 items-center rounded-full px-0.5 transition ${r.active ? 'bg-teal-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
-              <span className={`h-6 w-6 rounded-full bg-white shadow transition-transform ${r.active ? 'translate-x-5' : ''}`} />
-            </span>
-          </button>
-        </div>
+          <div className="flex items-center justify-between border-t border-line px-5">
+            <span className="text-[13px] text-fg-2">{r.active ? 'Activo' : 'Pausado'}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={r.active}
+              aria-label={`${r.active ? 'Pausar' : 'Activar'} ${r.note || cat?.name || 'regla'}`}
+              onClick={() => void toggle(r)}
+              className="-mr-2 grid h-11 w-14 place-items-center"
+            >
+              <span className={`flex h-7 w-12 items-center rounded-full border px-0.5 transition-colors duration-150 ease-soft ${r.active ? 'border-accent bg-accent' : 'border-line-strong bg-raised'}`}>
+                <span className={`h-5 w-5 rounded-full transition-transform duration-150 ease-soft ${r.active ? 'translate-x-5 bg-on-accent' : 'translate-x-0 bg-fg-3'}`} />
+              </span>
+            </button>
+          </div>
+        </Card>
       </li>
     )
   }
 
+  const empty = (text: string) => <Card><p className="text-center text-[13px] text-fg-3">{text}</p></Card>
+
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex items-center gap-2">
-        <Link to="/ajustes" aria-label="Volver" className="grid h-11 w-11 place-items-center text-xl text-slate-700 dark:text-slate-200">‹</Link>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Fijos y cuotas</h1>
+    <div>
+      <PageHeader title="Fijos y cuotas" back="/ajustes" />
+      <div className="space-y-6 px-4 pb-6">
+        <Card>
+          <div className="text-[13px] leading-5 font-medium text-fg-2">Comprometido por mes</div>
+          <Money amount={total} currency="ARS" className="mt-2 block text-[32px] leading-10 font-medium" />
+          {fx !== null && <Equiv amount={convert(total, 'ARS', 'USD', fx)} currency="USD" />}
+          <div className="mt-2 text-[13px] leading-5 text-fg-3">
+            {usdSum > 0 && fx === null
+              ? (fxLoading ? 'Cargando cotización…' : `Solo en pesos: sin cotización no se suman ${formatMoney(usdSum, 'USD')}`)
+              : usdSum > 0 ? `Incluye ${formatMoney(usdSum, 'USD')} al dólar blue venta` : 'Gastos fijos activos y cuotas en curso'}
+          </div>
+        </Card>
+
+        {(error || msg) && !draft && (
+          <p role="alert" className="rounded-control border border-line bg-surface p-3 text-[13px] leading-5 text-neg">{error ?? msg}</p>
+        )}
+
+        {loading ? (
+          <p className="text-center text-[13px] text-fg-3">Cargando…</p>
+        ) : (
+          <>
+            <section>
+              <SectionTitle>Gastos fijos</SectionTitle>
+              {fixed.length === 0 ? empty('Todavía no cargaste fijos (alquiler, servicios…)') : <ul className="space-y-3">{fixed.map(renderRule)}</ul>}
+            </section>
+            <section>
+              <SectionTitle>En cuotas</SectionTitle>
+              {inst.length === 0 ? empty('No tenés compras en cuotas') : <ul className="space-y-3">{inst.map(renderRule)}</ul>}
+            </section>
+          </>
+        )}
+
+        <Button block onClick={openNew}><Icon icon={Plus} />Nuevo fijo o cuota</Button>
       </div>
 
-      <div className="rounded-2xl bg-teal-700 p-4 text-white shadow-sm">
-        <div className="text-sm opacity-80">Comprometido por mes</div>
-        <div className="mt-1 text-2xl font-bold">
-          {formatMoney(total, 'ARS')}
-        </div>
-        <div className="mt-1 text-xs opacity-80">
-          {usdSum > 0 && fx === null
-            ? (fxLoading ? 'Cargando cotización…' : `Solo en pesos: sin cotización no se suman ${formatMoney(usdSum, 'USD')} en dólares`)
-            : usdSum > 0 ? `Incluye ${formatMoney(usdSum, 'USD')} al dólar blue venta` : 'Gastos fijos activos y cuotas en curso'}
-        </div>
-      </div>
-
-      {(error || msg) && !draft && (
-        <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{error ?? msg}</p>
-      )}
-
-      {loading ? (
-        <p className="text-center text-slate-500">Cargando…</p>
-      ) : (
-        <>
-          <section>
-            <h2 className="mb-2 font-semibold text-slate-900 dark:text-slate-100">Gastos fijos</h2>
-            {fixed.length === 0
-              ? <p className="rounded-2xl bg-white p-4 text-center text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">Todavía no cargaste fijos (alquiler, servicios…).</p>
-              : <ul className="space-y-2">{fixed.map(renderRule)}</ul>}
-          </section>
-          <section>
-            <h2 className="mb-2 font-semibold text-slate-900 dark:text-slate-100">En cuotas</h2>
-            {inst.length === 0
-              ? <p className="rounded-2xl bg-white p-4 text-center text-sm text-slate-500 dark:bg-slate-800 dark:text-slate-400">No tenés compras en cuotas.</p>
-              : <ul className="space-y-2">{inst.map(renderRule)}</ul>}
-          </section>
-        </>
-      )}
-
-      <button onClick={openNew} className="h-12 w-full rounded-xl bg-teal-700 font-semibold text-white active:bg-teal-800">
-        + Nuevo fijo o cuota
-      </button>
-
-      {draft && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setDraft(null)}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="rec-dialog-title"
-            className="mx-auto max-h-[92dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-3xl bg-white p-5 text-slate-900 dark:bg-slate-900 dark:text-slate-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="rec-dialog-title" className="text-lg font-bold">{draft.id ? 'Editar' : 'Nuevo fijo o cuota'}</h2>
-
-            <div className="flex overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600" role="group" aria-label="Tipo de regla">
-              <button type="button" disabled={!!draft.id} onClick={() => setDraft({ ...draft, kind: 'fixed' })} className={seg(draft.kind === 'fixed')}>Fijo mensual</button>
-              <button type="button" disabled={!!draft.id} onClick={() => setDraft({ ...draft, kind: 'installments', type: 'expense', category_id: draft.type === 'expense' ? draft.category_id : null })} className={seg(draft.kind === 'installments')}>En cuotas</button>
-            </div>
+      <Sheet open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? 'Editar' : 'Nuevo fijo o cuota'}>
+        {draft && (
+          <div className="space-y-4">
+            <Seg
+              label="Tipo de regla" disabled={!!draft.id} value={draft.kind}
+              onChange={(k) => k === 'fixed'
+                ? setDraft({ ...draft, kind: 'fixed' })
+                : setDraft({ ...draft, kind: 'installments', type: 'expense', category_id: draft.type === 'expense' ? draft.category_id : null })}
+              options={[{ value: 'fixed', label: 'Fijo mensual' }, { value: 'installments', label: 'En cuotas' }]}
+            />
 
             {draft.kind === 'fixed' && (
-              <div className="flex overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600" role="group" aria-label="Gasto o ingreso">
-                {([['expense', 'Gasto'], ['income', 'Ingreso']] as const).map(([t, l]) => (
-                  <button key={t} type="button" onClick={() => setDraft({ ...draft, type: t, category_id: null })} className={seg(draft.type === t)}>{l}</button>
-                ))}
-              </div>
+              <Seg
+                label="Gasto o ingreso" value={draft.type}
+                onChange={(t) => setDraft({ ...draft, type: t as TxType, category_id: null })}
+                options={[{ value: 'expense', label: 'Gasto' }, { value: 'income', label: 'Ingreso' }]}
+              />
             )}
 
             <AmountInput amount={draft.amount} onAmountChange={(v) => setDraft({ ...draft, amount: v })} currency={draft.currency} onCurrencyChange={(c) => setDraft({ ...draft, currency: c })} />
 
             {draft.kind === 'installments' && (
               <>
-                <div className="flex overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600" role="group" aria-label="El monto es">
-                  <button type="button" onClick={() => setDraft({ ...draft, totalMode: false })} className={seg(!draft.totalMode)}>Monto por cuota</button>
-                  <button type="button" onClick={() => setDraft({ ...draft, totalMode: true })} className={seg(draft.totalMode)}>Total de la compra</button>
-                </div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">
+                <Seg
+                  label="El monto es" value={draft.totalMode ? 'total' : 'cuota'}
+                  onChange={(v) => setDraft({ ...draft, totalMode: v === 'total' })}
+                  options={[{ value: 'cuota', label: 'Monto por cuota' }, { value: 'total', label: 'Total de la compra' }]}
+                />
+                <div className={label}>
                   Cantidad de cuotas
                   <input
                     type="text"
@@ -283,19 +290,19 @@ export default function Fijos() {
                     value={draft.n}
                     onChange={(e) => setDraft({ ...draft, n: e.target.value.replace(/\D/g, '').slice(0, 3) })}
                     aria-label="Cantidad de cuotas"
-                    className={field}
+                    className={`${field} num`}
                   />
                   <div className="mt-2 flex flex-wrap gap-2">
                     {QUICK_N.map((q) => (
                       <button key={q} type="button" onClick={() => setDraft({ ...draft, n: String(q) })}
-                        className={`h-11 min-w-11 rounded-full border px-4 font-medium ${n === q ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200'}`}>
+                        className={`num h-11 min-w-11 rounded-control border px-4 text-[15px] font-medium transition-colors duration-150 ease-soft ${n === q ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line-strong text-fg-2 hover:bg-raised'}`}>
                         {q}
                       </button>
                     ))}
                   </div>
                 </div>
                 {typed > 0 && n >= 2 && (
-                  <p className="rounded-xl bg-slate-100 p-3 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  <p className="num rounded-control bg-raised p-3 text-[13px] leading-5 text-fg-2">
                     {n} cuotas de {formatMoney(perInstallment, draft.currency)}
                     {!draft.totalMode && <> · total {formatMoney(Math.round(typed * n * 100) / 100, draft.currency)}</>}
                   </p>
@@ -304,40 +311,36 @@ export default function Fijos() {
             )}
 
             <div>
-              <div className="mb-1 text-sm text-slate-600 dark:text-slate-300">Categoría</div>
+              <div className="mb-2 text-[13px] leading-5 text-fg-2">Categoría</div>
               <CategoryPicker categories={categories} type={draft.kind === 'installments' ? 'expense' : draft.type} value={draft.category_id} onChange={(id) => setDraft({ ...draft, category_id: id })} />
             </div>
 
-            <div className="flex gap-2">
-              <label className="block flex-1 text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex gap-3">
+              <label className={`${label} flex-1`}>
                 Día del mes (1-28)
-                <input type="number" inputMode="numeric" min={1} max={28} value={draft.day} onChange={(e) => setDraft({ ...draft, day: e.target.value })} className={field} />
+                <input type="number" inputMode="numeric" min={1} max={28} value={draft.day} onChange={(e) => setDraft({ ...draft, day: e.target.value })} className={`${field} num`} />
               </label>
-              <label className="block flex-1 text-sm text-slate-600 dark:text-slate-300">
+              <label className={`${label} flex-1`}>
                 Mes de inicio
                 <input type="month" value={draft.start_month} onChange={(e) => setDraft({ ...draft, start_month: e.target.value })} className={field} />
               </label>
             </div>
 
-            <label className="block text-sm text-slate-600 dark:text-slate-300">
+            <label className={label}>
               Nota
               <input type="text" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="Ej: Alquiler, Heladera" className={field} />
             </label>
 
-            {msg && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{msg}</p>}
+            {msg && <p role="alert" className="text-[13px] leading-5 text-neg">{msg}</p>}
 
             <div className="flex gap-2 pt-1">
-              {draft.id && (
-                <button onClick={() => void del()} disabled={busy} className="h-12 rounded-xl px-4 font-medium text-red-600 disabled:opacity-50 dark:text-red-400">Eliminar</button>
-              )}
-              <button onClick={() => setDraft(null)} className="h-12 flex-1 rounded-xl border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200">Cancelar</button>
-              <button onClick={() => void save()} disabled={busy} className="h-12 flex-1 rounded-xl bg-teal-700 font-semibold text-white disabled:opacity-50">
-                {busy ? 'Guardando…' : 'Guardar'}
-              </button>
+              {draft.id && <Button variant="danger" onClick={() => void del()} disabled={busy}>Eliminar</Button>}
+              <Button variant="secondary" className="flex-1" onClick={() => setDraft(null)}>Cancelar</Button>
+              <Button className="flex-1" onClick={() => void save()} disabled={busy}>{busy ? 'Guardando…' : 'Guardar'}</Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
     </div>
   )
 }

@@ -1,22 +1,32 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ChevronRight, Repeat, Trash2 } from 'lucide-react'
+import { Button } from '../components/ui/Button'
+import { Card, SectionTitle } from '../components/ui/Card'
+import { CategoryIcon } from '../components/ui/CategoryIcon'
+import { Icon } from '../components/ui/Icon'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Segmented } from '../components/ui/Segmented'
+import { Sheet } from '../components/ui/Sheet'
 import { useAuth } from '../hooks/useAuth'
 import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
 import { formatMoney } from '../lib/fx'
 import { deleteMyAccount } from '../lib/account'
+import { CATEGORY_COLORS, CATEGORY_ICONS } from '../lib/categoryIcons'
 import type { TxType } from '../lib/types'
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899']
+const row = 'flex min-h-13 items-center justify-between gap-3 px-5'
+const input = 'h-11 w-full rounded-control border border-line-strong bg-surface px-3 text-[15px] text-fg placeholder:text-fg-3'
 
 export default function Ajustes() {
   const { user, signOut } = useAuth()
   const { rate } = useFxRate()
   const { categories, add, remove, error } = useCategories()
   const [type, setType] = useState<TxType>('expense')
-  const [icon, setIcon] = useState('🏷️')
+  const [icon, setIcon] = useState('tag')
   const [name, setName] = useState('')
-  const [color, setColor] = useState(COLORS[4])
+  const [color, setColor] = useState(CATEGORY_COLORS[4])
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [delOpen, setDelOpen] = useState(false)
@@ -36,10 +46,8 @@ export default function Ajustes() {
   async function onAdd() {
     if (busy) return
     if (!name.trim()) return setMsg('Poné un nombre')
-    const emoji = Array.from(icon.trim()).slice(0, 8).join('')
-    if (!emoji) return setMsg('Poné un emoji')
     setBusy(true)
-    const err = await add({ name: name.trim(), icon: emoji, color, type })
+    const err = await add({ name: name.trim(), icon, color, type })
     setBusy(false)
     if (err) return setMsg(err)
     setMsg(null)
@@ -52,158 +60,173 @@ export default function Ajustes() {
   }
 
   const shown = categories.filter((c) => c.type === type)
-  const card = 'rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800'
-  const input = 'h-11 rounded-xl border border-slate-300 bg-white px-3 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100'
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Ajustes</h1>
-
-      <section className={card}>
-        <div className="text-xs text-slate-500 dark:text-slate-400">Cuenta</div>
-        <div className="mt-1 break-all font-medium text-slate-900 dark:text-slate-100">{user?.email}</div>
-      </section>
-
-      <section className={card}>
-        <div className="text-xs text-slate-500 dark:text-slate-400">Dólar blue</div>
-        {rate ? (
-          <>
-            <div className="mt-1 flex gap-6 text-slate-900 dark:text-slate-100">
-              <div>Compra <b>{formatMoney(rate.compra, 'ARS')}</b></div>
-              <div>Venta <b>{formatMoney(rate.venta, 'ARS')}</b></div>
+    <div>
+      <PageHeader title="Ajustes" />
+      <div className="space-y-6 px-4 pb-6">
+        <section>
+          <SectionTitle>Cuenta</SectionTitle>
+          <Card pad={false}>
+            <div className={row}>
+              <span className="text-[15px] text-fg-2">Correo</span>
+              <span className="min-w-0 truncate text-[15px]">{user?.email}</span>
             </div>
-            {rate.fecha && (
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Actualizado: {new Date(rate.fecha).toLocaleString('es-AR')}
-              </div>
+          </Card>
+        </section>
+
+        <section>
+          <SectionTitle>Dólar blue</SectionTitle>
+          <Card pad={false} className="divide-y divide-line">
+            {rate ? (
+              <>
+                <div className={row}>
+                  <span className="text-[15px] text-fg-2">Compra</span>
+                  <span className="num font-mono text-[15px]">{formatMoney(rate.compra, 'ARS')}</span>
+                </div>
+                <div className={row}>
+                  <span className="text-[15px] text-fg-2">Venta</span>
+                  <span className="num font-mono text-[15px]">{formatMoney(rate.venta, 'ARS')}</span>
+                </div>
+                {rate.fecha && (
+                  <div className="flex min-h-10 items-center px-5 font-mono text-[12px] text-fg-3">
+                    Actualizado: {new Date(rate.fecha).toLocaleString('es-AR')}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className={`${row} text-[13px] text-fg-3`}>Cargando…</div>
             )}
-          </>
-        ) : (
-          <div className="mt-1 text-slate-500">Cargando…</div>
-        )}
-      </section>
+          </Card>
+        </section>
 
-      <Link to="/fijos" className={`${card} flex min-h-12 items-center justify-between font-medium text-slate-900 dark:text-slate-100`}>
-        <span>🔁 Fijos y cuotas</span>
-        <span aria-hidden="true" className="text-slate-400">›</span>
-      </Link>
+        <Card pad={false}>
+          <Link to="/fijos" className={`${row} rounded-card transition-colors hover:bg-raised`}>
+            <span className="flex items-center gap-3 text-[15px]"><Icon icon={Repeat} className="text-fg-2" />Fijos y cuotas</span>
+            <Icon icon={ChevronRight} className="text-fg-3" />
+          </Link>
+        </Card>
 
-      <section className={`${card} space-y-3`}>
-        <h2 className="font-semibold text-slate-900 dark:text-slate-100">Categorías</h2>
-        <div className="flex overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600">
-          {([['expense', 'Gastos'], ['income', 'Ingresos']] as const).map(([t, l]) => (
-            <button
-              key={t}
-              onClick={() => setType(t)}
-              className={`h-11 flex-1 font-medium ${type === t ? 'bg-teal-700 text-white' : 'text-slate-700 dark:text-slate-200'}`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        <ul className="divide-y divide-slate-100 dark:divide-slate-700">
-          {shown.map((c) => (
-            <li key={c.id} className="flex min-h-11 items-center gap-3 py-1">
-              <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
-              <span className="flex-1 text-slate-900 dark:text-slate-100">{c.icon} {c.name}</span>
-              <button
-                aria-label={`Eliminar ${c.name}`}
-                onClick={() => onRemove(c.id, c.name)}
-                className="h-11 w-11 text-lg text-red-500"
-              >
-                🗑
-              </button>
-            </li>
-          ))}
-          {shown.length === 0 && <li className="py-2 text-sm text-slate-500">Sin categorías</li>}
-        </ul>
-
-        <div className="space-y-2 border-t border-slate-100 pt-3 dark:border-slate-700">
-          <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            Nueva categoría de {type === 'expense' ? 'gasto' : 'ingreso'}
-          </div>
-          <div className="flex gap-2">
-            <input value={icon} onChange={(e) => setIcon(e.target.value)} aria-label="Emoji" className={`${input} w-14 text-center text-xl`} />
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className={`${input} min-w-0 flex-1`} />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                aria-label={`Color ${c}`}
-                onClick={() => setColor(c)}
-                className={`h-9 w-9 rounded-full ${color === c ? 'ring-2 ring-slate-900 ring-offset-2 dark:ring-white dark:ring-offset-slate-800' : ''}`}
-                style={{ backgroundColor: c }}
+        <section>
+          <SectionTitle>Categorías</SectionTitle>
+          <Card pad={false}>
+            <div className="border-b border-line p-3">
+              <Segmented
+                label="Tipo de categoría" value={type} onChange={setType}
+                options={[{ value: 'expense', label: 'Gastos' }, { value: 'income', label: 'Ingresos' }]}
               />
-            ))}
-          </div>
-          <button onClick={onAdd} disabled={busy} className="h-12 w-full rounded-xl bg-teal-700 font-semibold text-white active:bg-teal-800 disabled:opacity-50">
-            {busy ? 'Agregando…' : 'Agregar categoría'}
-          </button>
-          {(msg || error) && <p className="text-sm text-red-600 dark:text-red-400">{msg ?? error}</p>}
-        </div>
-      </section>
-
-      <button
-        onClick={() => void signOut()}
-        className="h-12 w-full rounded-xl border border-red-300 font-medium text-red-600 dark:border-red-800 dark:text-red-400"
-      >
-        Cerrar sesión
-      </button>
-
-      <section className={`${card} space-y-1`}>
-        <h2 className="mb-1 font-semibold text-slate-900 dark:text-slate-100">Cuenta</h2>
-        <Link to="/privacidad" className="flex min-h-12 items-center justify-between text-slate-900 dark:text-slate-100">
-          <span>Política de privacidad</span>
-          <span aria-hidden="true" className="text-slate-400">›</span>
-        </Link>
-        <button
-          onClick={() => { setDelText(''); setDelErr(null); setDelOpen(true) }}
-          className="h-12 w-full rounded-xl bg-red-600 font-semibold text-white active:bg-red-700"
-        >
-          Eliminar mi cuenta
-        </button>
-        <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400">Versión 1.0.0</div>
-      </section>
-
-      {delOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="del-title">
-          <div className="w-full max-w-md space-y-3 rounded-t-2xl bg-white p-5 dark:bg-slate-800 sm:rounded-2xl">
-            <h2 id="del-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">Eliminar mi cuenta</h2>
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              Se borran todos tus datos (gastos, categorías, presupuestos y fijos). Esta acción es irreversible.
-            </p>
-            <label className="block text-sm text-slate-700 dark:text-slate-300">
-              Para confirmar, escribí <b>ELIMINAR</b>
-              <input
-                value={delText}
-                onChange={(e) => setDelText(e.target.value)}
-                autoCapitalize="characters"
-                autoComplete="off"
-                className={`${input} mt-1 w-full`}
-              />
-            </label>
-            {delErr && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{delErr}</p>}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDelOpen(false)}
-                disabled={delBusy}
-                className="h-12 flex-1 rounded-xl border border-slate-300 font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => void onDeleteAccount()}
-                disabled={delBusy || delText.trim() !== 'ELIMINAR'}
-                className="h-12 flex-1 rounded-xl bg-red-600 font-semibold text-white disabled:opacity-40"
-              >
-                {delBusy ? 'Eliminando…' : 'Eliminar'}
-              </button>
             </div>
+            <ul className="divide-y divide-line">
+              {shown.map((c) => (
+                <li key={c.id} className="flex min-h-13 items-center gap-3 pr-2 pl-5">
+                  <CategoryIcon category={c} size={32} />
+                  <span className="min-w-0 flex-1 truncate text-[15px]">{c.name}</span>
+                  <button
+                    aria-label={`Eliminar ${c.name}`}
+                    onClick={() => onRemove(c.id, c.name)}
+                    className="grid h-11 w-11 place-items-center rounded-control text-fg-3 transition-colors hover:bg-raised hover:text-fg"
+                  >
+                    <Icon icon={Trash2} />
+                  </button>
+                </li>
+              ))}
+              {shown.length === 0 && <li className="flex min-h-13 items-center px-5 text-[13px] text-fg-3">Sin categorías</li>}
+            </ul>
+          </Card>
+        </section>
+
+        <section>
+          <SectionTitle>Nueva categoría de {type === 'expense' ? 'gasto' : 'ingreso'}</SectionTitle>
+          <Card className="space-y-4">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" aria-label="Nombre" className={input} />
+            <div role="group" aria-label="Ícono" className="flex flex-wrap gap-2">
+              {Object.entries(CATEGORY_ICONS).map(([key, I]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-label={`Ícono ${key}`}
+                  aria-pressed={icon === key}
+                  onClick={() => setIcon(key)}
+                  className={`grid h-9 w-9 place-items-center rounded-control transition-colors duration-150 ease-soft ${
+                    icon === key ? 'bg-raised text-fg ring-2 ring-accent' : 'text-fg-2 hover:bg-raised'
+                  }`}
+                >
+                  <Icon icon={I} />
+                </button>
+              ))}
+            </div>
+            <div role="group" aria-label="Color" className="flex flex-wrap">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-label={`Color ${c}`}
+                  aria-pressed={color === c}
+                  onClick={() => setColor(c)}
+                  className="grid h-11 w-11 place-items-center"
+                >
+                  <span
+                    className={`h-7 w-7 rounded-full ${color === c ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface' : ''}`}
+                    style={{ backgroundColor: c }}
+                  />
+                </button>
+              ))}
+            </div>
+            <Button block onClick={onAdd} disabled={busy}>{busy ? 'Agregando…' : 'Agregar categoría'}</Button>
+            {(msg || error) && <p className="text-[13px] leading-5 text-neg">{msg ?? error}</p>}
+          </Card>
+        </section>
+
+        <Button block variant="secondary" onClick={() => void signOut()}>Cerrar sesión</Button>
+
+        <section>
+          <SectionTitle>Datos y privacidad</SectionTitle>
+          <Card pad={false} className="divide-y divide-line">
+            <Link to="/privacidad" className={`${row} rounded-t-card transition-colors hover:bg-raised`}>
+              <span className="text-[15px]">Política de privacidad</span>
+              <Icon icon={ChevronRight} className="text-fg-3" />
+            </Link>
+            <div className="p-3">
+              <Button
+                block variant="danger"
+                onClick={() => { setDelText(''); setDelErr(null); setDelOpen(true) }}
+              >
+                Eliminar mi cuenta
+              </Button>
+            </div>
+          </Card>
+          <div className="pt-4 text-center font-mono text-[12px] leading-4 text-fg-3">Versión 1.1.0</div>
+        </section>
+      </div>
+
+      <Sheet open={delOpen} onClose={() => setDelOpen(false)} title="Eliminar mi cuenta">
+        <div className="space-y-4">
+          <p className="text-[15px] leading-6 text-fg-2">
+            Se borran todos tus datos (gastos, categorías, presupuestos y fijos). Esta acción es irreversible.
+          </p>
+          <label className="block text-[13px] leading-5 text-fg-2">
+            Para confirmar, escribí <span className="font-mono text-fg">ELIMINAR</span>
+            <input
+              value={delText}
+              onChange={(e) => setDelText(e.target.value)}
+              autoCapitalize="characters"
+              autoComplete="off"
+              className={`${input} mt-1`}
+            />
+          </label>
+          {delErr && <p className="text-[13px] leading-5 text-neg" role="alert">{delErr}</p>}
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setDelOpen(false)} disabled={delBusy}>Cancelar</Button>
+            <button
+              onClick={() => void onDeleteAccount()}
+              disabled={delBusy || delText.trim() !== 'ELIMINAR'}
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-control bg-neg px-4 text-[15px] font-medium text-white transition-[opacity,transform] duration-150 ease-soft active:scale-[0.98] disabled:opacity-40"
+            >
+              {delBusy ? 'Eliminando…' : 'Eliminar'}
+            </button>
           </div>
         </div>
-      )}
+      </Sheet>
     </div>
   )
 }

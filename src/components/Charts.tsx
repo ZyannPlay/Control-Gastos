@@ -31,7 +31,16 @@ function Empty({ text, className = 'h-40' }: { text: string; className?: string 
   return <div className={`grid place-items-center text-[13px] text-fg-3 ${className}`}>{text}</div>
 }
 
-export interface RankedCategory { name: string; category?: Pick<Category, 'icon' | 'color'> | null; value: number }
+export interface RankedCategory { id?: string; name: string; category?: Pick<Category, 'icon' | 'color'> | null; value: number }
+
+/** Redondea hacia arriba a un número "lindo" (1, 2, 2.5, 5 × 10^n) para que el eje no corte cifras. */
+function niceMax(v: number): number {
+  if (v <= 0) return 1
+  const p = 10 ** Math.floor(Math.log10(v))
+  const n = v / p
+  const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10
+  return step * p
+}
 
 /** Lista rankeada con barras finas. Valores en ARS; se convierten a `currency` con `rate`. La primera va en acento. */
 export function CategoryRanking({ data, currency = 'ARS', rate = 1, limit = 6 }: { data: RankedCategory[]; currency?: Cur; rate?: number; limit?: number }) {
@@ -43,7 +52,7 @@ export function CategoryRanking({ data, currency = 'ARS', rate = 1, limit = 6 }:
       {rows.slice(0, limit).map((r, i) => {
         const pct = total > 0 ? (r.value / total) * 100 : 0
         return (
-          <li key={r.name} className="flex items-center gap-3">
+          <li key={r.id ?? r.name} className="flex items-center gap-3">
             <CategoryIcon category={r.category} />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-3">
@@ -125,8 +134,8 @@ export function TrendLine({
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis dataKey="day" type="number" domain={[1, end]} ticks={ticks} tick={AXIS} axisLine={false} tickLine={false} />
           <YAxis
-            tick={AXIS} axisLine={false} tickLine={false} tickFormatter={compact} width={44}
-            domain={[0, (max: number) => Math.max(max, limit ?? 0)]}
+            tick={AXIS} axisLine={false} tickLine={false} tickFormatter={compact} width={52} tickCount={5}
+            domain={[0, (max: number) => niceMax(Math.max(max, limit ?? 0))]}
           />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
@@ -139,7 +148,7 @@ export function TrendLine({
           {limit !== null && (
             <ReferenceLine
               y={limit} stroke="var(--fg-3)" strokeDasharray="2 4" strokeWidth={1.5}
-              label={{ value: 'Presupuesto', position: 'insideTopLeft', fill: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)', dy: -14 }}
+              label={{ value: 'Presupuesto', position: 'insideBottomRight', fill: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--font-mono)', dy: 14 }}
             />
           )}
           <Line

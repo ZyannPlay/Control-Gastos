@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react'
-import { CategoryPie, MonthlyBars, TrendLine } from '../components/Charts'
+import { CategoryRanking, MonthlyBars, TrendLine } from '../components/Charts'
+import { Card, SectionTitle } from '../components/ui/Card'
+import { Equiv, Money } from '../components/ui/Money'
+import { MonthSwitcher } from '../components/ui/MonthSwitcher'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Segmented } from '../components/ui/Segmented'
+import { useBudgets } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
 import { useTransactions } from '../hooks/useTransactions'
 import { convert, formatMoney } from '../lib/fx'
 import {
-  cumulativeDaily, currentMonth, daysInMonth, monthLabel, monthlyTotals, shiftMonth,
+  budgetProgress, cumulativeDaily, currentMonth, daysInMonth, monthlyTotals, shiftMonth,
   spentByCategory, totalsByType,
 } from '../lib/stats'
 
@@ -16,6 +22,7 @@ export default function Reportes() {
   const fx = rate?.venta ?? null
   const { categories, error: catError } = useCategories()
   const { transactions, loading, error: txError } = useTransactions({ month })
+  const { budgets } = useBudgets(month)
   const from = `${shiftMonth(month, -5)}-01`
   const to = `${month}-${String(daysInMonth(month)).padStart(2, '0')}`
   const range = useTransactions({ from, to })
@@ -36,107 +43,107 @@ export default function Reportes() {
     const isCurrent = month === currentMonth()
     return cumulativeDaily(transactions, month, isCurrent ? new Date().getDate() : undefined)
   }, [transactions, month])
+  // total presupuestado del mes en ARS (los presupuestos en USD se suman solo si hay cotización)
+  const budgetTotal = useMemo(
+    () => budgets.reduce((s, b) => (b.currency === 'USD' && fx === null ? s : s + budgetProgress(b, 0, fx ?? 1).limit), 0),
+    [budgets, fx],
+  )
 
   const slices = byCat.map((s) => {
     const c = s.category_id ? catMap.get(s.category_id) : undefined
-    return { name: c?.name ?? 'Sin categoría', icon: c?.icon ?? '❔', color: c?.color ?? '#94a3b8', value: s.total }
+    return { id: s.category_id ?? 'sin-categoria', name: c?.name ?? 'Sin categoría', category: c ?? null, value: s.total }
   })
-  const money = (ars: number) => formatMoney(convert(ars, 'ARS', cur, fx ?? 1), cur)
+  const other = cur === 'ARS' ? 'USD' : 'ARS'
+  const view = (ars: number) => convert(ars, 'ARS', cur, fx ?? 1)
+  const viewOther = (ars: number) => convert(ars, 'ARS', other, fx ?? 1)
   const savings = totals.income > 0 ? (totals.balance / totals.income) * 100 : 0
+  const nofx = <p className="grid h-40 place-items-center text-[13px] text-fg-3">{fxLoading ? 'Cargando cotización…' : 'Sin cotización'}</p>
+  const spentTotal = trend.length ? trend[trend.length - 1].total : 0
 
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Reportes</h1>
-        <div className="flex h-11 overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600">
-          {(['ARS', 'USD'] as const).map((c) => (
-            <button
-              key={c}
-              onClick={() => setCur(c)}
-              className={`px-4 text-sm font-medium ${cur === c ? 'bg-teal-700 text-white' : 'text-slate-700 dark:text-slate-200'}`}
-            >
-              {c}
-            </button>
-          ))}
+    <div>
+      <PageHeader
+        title="Reportes"
+        action={
+          <Segmented
+            label="Moneda" value={cur} onChange={setCur} className="w-32"
+            options={[{ value: 'ARS', label: 'ARS' }, { value: 'USD', label: 'USD' }]}
+          />
+        }
+      />
+      <div className="space-y-6 px-4 pb-6">
+        <MonthSwitcher month={month} onChange={setMonth} />
+
+        {loadError && <p role="alert" className="rounded-control border border-line bg-surface p-3 text-[13px] leading-5 text-neg">{loadError}</p>}
+
+        {usdBlocked && (
+          <p className="text-[13px] leading-5 text-fg-3">
+            {fxLoading ? 'Cargando cotización…' : 'Cotización no disponible, mostrando en pesos'}
+          </p>
+        )}
+        {cur === 'USD' && fx !== null && (
+          <p className="num font-mono text-[12px] leading-4 text-fg-3">Dólar blue venta de hoy: {formatMoney(fx, 'ARS')}</p>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="min-w-0">
+            <div className="text-[13px] leading-5 text-fg-2">Gastos</div>
+            <div className="mt-1">
+              {usdBlocked ? <span className="text-[20px] text-fg-3">…</span> : <Money kind="expense" amount={view(totals.expense)} currency={cur} className="text-[20px] leading-7 font-medium" />}
+            </div>
+            {fx !== null && <div><Equiv amount={viewOther(totals.expense)} currency={other} /></div>}
+          </Card>
+          <Card className="min-w-0">
+            <div className="text-[13px] leading-5 text-fg-2">Ingresos</div>
+            <div className="mt-1">
+              {usdBlocked ? <span className="text-[20px] text-fg-3">…</span> : <Money kind="income" amount={view(totals.income)} currency={cur} className="text-[20px] leading-7 font-medium" />}
+            </div>
+            {fx !== null && <div><Equiv amount={viewOther(totals.income)} currency={other} /></div>}
+          </Card>
+          <Card pad={false} className="col-span-2 flex h-12 items-center justify-between px-5">
+            <span className="text-[13px] text-fg-2">Ahorro</span>
+            <span className={`num text-[15px] font-medium ${totals.income > 0 && savings < 0 ? 'text-neg' : ''}`}>
+              {totals.income > 0 ? `${Math.round(savings)}%` : '—'}
+            </span>
+          </Card>
         </div>
+
+        {loading ? (
+          <p className="text-center text-[13px] text-fg-3">Cargando…</p>
+        ) : (
+          <>
+            <section>
+              <SectionTitle>Gasto acumulado del mes</SectionTitle>
+              <Card className="px-3 pt-5 pb-3">
+                {usdBlocked ? nofx : (
+                  <>
+                    <div className="px-2 pb-4">
+                      <Money amount={view(spentTotal)} currency={cur} className="text-[28px] leading-8 font-medium" />
+                      <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                        {fx !== null && <Equiv amount={viewOther(spentTotal)} currency={other} />}
+                        {budgetTotal > 0 && <span className="num font-mono text-[12px] leading-4 text-fg-3">de {formatMoney(view(budgetTotal), cur)} presupuestados</span>}
+                      </div>
+                    </div>
+                    <TrendLine data={trend} budget={budgetTotal} days={daysInMonth(month)} currency={cur} rate={fx ?? 1} />
+                  </>
+                )}
+              </Card>
+            </section>
+            <section>
+              <SectionTitle>Gasto por categoría</SectionTitle>
+              <Card>
+                {usdBlocked ? nofx : <CategoryRanking data={slices} currency={cur} rate={fx ?? 1} />}
+              </Card>
+            </section>
+            <section>
+              <SectionTitle>Últimos 6 meses</SectionTitle>
+              <Card className="px-3 pt-4 pb-4">
+                {usdBlocked ? nofx : <MonthlyBars data={monthly} currency={cur} rate={fx ?? 1} />}
+              </Card>
+            </section>
+          </>
+        )}
       </div>
-
-      <div className="flex items-center justify-between rounded-2xl bg-white p-1 shadow-sm dark:bg-slate-800">
-        <button aria-label="Mes anterior" className="h-11 w-11 text-xl text-slate-700 dark:text-slate-200" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button>
-        <span className="font-semibold capitalize text-slate-900 dark:text-slate-100">{monthLabel(month)}</span>
-        <button aria-label="Mes siguiente" className="h-11 w-11 text-xl text-slate-700 dark:text-slate-200" onClick={() => setMonth(shiftMonth(month, 1))}>›</button>
-      </div>
-
-      {loadError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{loadError}</p>}
-
-      {usdBlocked && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {fxLoading ? 'Cargando cotización…' : 'Cotización no disponible. Mostrando en pesos.'}
-        </p>
-      )}
-
-      {cur === 'USD' && fx !== null && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">Convertido a dólar blue (venta) de hoy: {formatMoney(fx, 'ARS')}</p>
-      )}
-
-      <div className="grid grid-cols-3 gap-2">
-        <Card label="Gastos" value={usdBlocked ? '…' : money(totals.expense)} cls="text-rose-600 dark:text-rose-400" />
-        <Card label="Ingresos" value={usdBlocked ? '…' : money(totals.income)} cls="text-emerald-600 dark:text-emerald-400" />
-        <Card
-          label="Ahorro"
-          value={totals.income > 0 ? `${Math.round(savings)}%` : '—'}
-          cls={savings >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-rose-600 dark:text-rose-400'}
-        />
-      </div>
-
-      {loading ? (
-        <p className="text-center text-slate-500">Cargando…</p>
-      ) : (
-        <>
-          <Section title="Gasto por categoría">
-            {usdBlocked ? <p className="py-6 text-center text-sm text-slate-500">{fxLoading ? 'Cargando cotización…' : 'Sin cotización'}</p> : <CategoryPie data={slices} currency={cur} rate={fx ?? 1} />}
-            {slices.length > 0 && (
-              <table className="mt-2 w-full text-sm">
-                <tbody>
-                  {slices.slice(0, 5).map((s) => (
-                    <tr key={s.name} className="border-t border-slate-100 dark:border-slate-700">
-                      <td className="py-2 text-slate-800 dark:text-slate-100">{s.icon} {s.name}</td>
-                      <td className="py-2 text-right text-slate-500 dark:text-slate-400">
-                        {totals.expense > 0 ? Math.round((s.value / totals.expense) * 100) : 0}%
-                      </td>
-                      <td className="py-2 pl-3 text-right font-medium text-slate-900 dark:text-slate-100">{usdBlocked ? '…' : money(s.value)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Section>
-          <Section title="Últimos 6 meses">
-            {usdBlocked ? <p className="py-6 text-center text-sm text-slate-500">{fxLoading ? 'Cargando cotización…' : 'Sin cotización'}</p> : <MonthlyBars data={monthly} currency={cur} rate={fx ?? 1} />}
-          </Section>
-          <Section title="Gasto acumulado del mes">
-            {usdBlocked ? <p className="py-6 text-center text-sm text-slate-500">{fxLoading ? 'Cargando cotización…' : 'Sin cotización'}</p> : <TrendLine data={trend} currency={cur} rate={fx ?? 1} />}
-          </Section>
-        </>
-      )}
     </div>
-  )
-}
-
-function Card({ label, value, cls }: { label: string; value: string; cls: string }) {
-  return (
-    <div className="rounded-2xl bg-white p-3 shadow-sm dark:bg-slate-800">
-      <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
-      <div className={`mt-1 text-sm font-bold leading-tight ${cls}`}>{value}</div>
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
-      <h2 className="mb-2 font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-      {children}
-    </section>
   )
 }
