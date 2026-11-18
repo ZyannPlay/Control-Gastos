@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Login() {
@@ -67,6 +68,10 @@ export default function Login() {
       <button type="button" onClick={google} className="min-h-[48px] w-full rounded-xl border border-slate-300 bg-white font-semibold dark:border-slate-700 dark:bg-slate-900">
         Continuar con Google
       </button>
+
+      <Link to="/privacidad" className="mt-6 inline-flex min-h-[44px] items-center justify-center text-xs text-slate-500 underline dark:text-slate-400">
+        Política de privacidad
+      </Link>
     </div>
   )
 }

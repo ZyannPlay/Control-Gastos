@@ -2,3 +2,5 @@
 
 :root { color-scheme: light dark; }
 body { @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased; -webkit-tap-highlight-color: transparent; }
+/* Safe areas (notch / barras del sistema); en web valen 0 */
+#root { padding-top: env(safe-area-inset-top); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }

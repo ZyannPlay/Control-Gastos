@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useRef } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import BottomNav from './components/BottomNav'
 import Login from './pages/Login'
@@ -8,6 +8,9 @@ import NuevoGasto from './pages/NuevoGasto'
 import Movimientos from './pages/Movimientos'
 import Ajustes from './pages/Ajustes'
 import { syncRecurring } from './lib/syncRecurring'
+import { initNative } from './lib/native'
+import Privacidad from './pages/Privacidad'
+import EliminarCuenta from './pages/EliminarCuenta'
 
 const Presupuestos = lazy(() => import('./pages/Presupuestos'))
 const Fijos = lazy(() => import('./pages/Fijos'))
@@ -15,9 +18,22 @@ const Reportes = lazy(() => import('./pages/Reportes'))
 
 export default function App() {
   const { user, loading } = useAuth()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const pathRef = useRef(pathname)
+  pathRef.current = pathname
+  useEffect(() => initNative((d) => navigate(d), () => pathRef.current), []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user) void syncRecurring().catch(() => {})
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (pathname === '/privacidad' || pathname === '/eliminar-cuenta') {
+    return (
+      <Routes>
+        <Route path="/privacidad" element={<Privacidad />} />
+        <Route path="/eliminar-cuenta" element={<EliminarCuenta user={!!user} />} />
+      </Routes>
+    )
+  }
   if (loading) return <div className="grid h-dvh place-items-center text-slate-500">Cargando…</div>
   if (!user) return <Login />
   return (

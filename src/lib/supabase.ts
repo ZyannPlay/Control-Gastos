@@ -5,4 +5,6 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
 export const supabaseConfigured = Boolean(url && key)
 
-export const supabase = createClient(url ?? 'http://localhost:54321', key ?? 'public-anon-key')
+export const supabase = createClient(url ?? 'http://localhost:54321', key ?? 'public-anon-key', {
+  auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true },
+})

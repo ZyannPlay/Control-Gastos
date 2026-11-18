@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase, supabaseConfigured } from '../lib/supabase'
+import { Browser } from '@capacitor/browser'
 import { toSpanishError } from './errors'
+import { AUTH_CALLBACK, isNative } from '../lib/native'
 
 const NO_CONFIG = 'Falta configurar Supabase (.env)'
 
@@ -73,6 +75,15 @@ export function useAuth(): {
   const signInWithGoogle = useCallback(async () => {
     if (!supabaseConfigured) return NO_CONFIG
     try {
+      if (isNative()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: AUTH_CALLBACK, skipBrowserRedirect: true },
+        })
+        if (error) return translate(error.message)
+        if (data?.url) await Browser.open({ url: data.url })
+        return null
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin },

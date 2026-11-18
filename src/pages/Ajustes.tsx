@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
 import { formatMoney } from '../lib/fx'
+import { deleteMyAccount } from '../lib/account'
 import type { TxType } from '../lib/types'
 
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899']
@@ -18,6 +19,19 @@ export default function Ajustes() {
   const [color, setColor] = useState(COLORS[4])
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [delOpen, setDelOpen] = useState(false)
+  const [delText, setDelText] = useState('')
+  const [delBusy, setDelBusy] = useState(false)
+  const [delErr, setDelErr] = useState<string | null>(null)
+
+  async function onDeleteAccount() {
+    if (delBusy || delText.trim() !== 'ELIMINAR') return
+    setDelBusy(true)
+    setDelErr(null)
+    const err = await deleteMyAccount()
+    setDelBusy(false)
+    if (err) setDelErr(err)
+  }
 
   async function onAdd() {
     if (busy) return
@@ -137,6 +151,59 @@ export default function Ajustes() {
       >
         Cerrar sesión
       </button>
+
+      <section className={`${card} space-y-1`}>
+        <h2 className="mb-1 font-semibold text-slate-900 dark:text-slate-100">Cuenta</h2>
+        <Link to="/privacidad" className="flex min-h-12 items-center justify-between text-slate-900 dark:text-slate-100">
+          <span>Política de privacidad</span>
+          <span aria-hidden="true" className="text-slate-400">›</span>
+        </Link>
+        <button
+          onClick={() => { setDelText(''); setDelErr(null); setDelOpen(true) }}
+          className="h-12 w-full rounded-xl bg-red-600 font-semibold text-white active:bg-red-700"
+        >
+          Eliminar mi cuenta
+        </button>
+        <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400">Versión 1.0.0</div>
+      </section>
+
+      {delOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="del-title">
+          <div className="w-full max-w-md space-y-3 rounded-t-2xl bg-white p-5 dark:bg-slate-800 sm:rounded-2xl">
+            <h2 id="del-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">Eliminar mi cuenta</h2>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Se borran todos tus datos (gastos, categorías, presupuestos y fijos). Esta acción es irreversible.
+            </p>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">
+              Para confirmar, escribí <b>ELIMINAR</b>
+              <input
+                value={delText}
+                onChange={(e) => setDelText(e.target.value)}
+                autoCapitalize="characters"
+                autoComplete="off"
+                className={`${input} mt-1 w-full`}
+              />
+            </label>
+            {delErr && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{delErr}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDelOpen(false)}
+                disabled={delBusy}
+                className="h-12 flex-1 rounded-xl border border-slate-300 font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => void onDeleteAccount()}
+                disabled={delBusy || delText.trim() !== 'ELIMINAR'}
+                className="h-12 flex-1 rounded-xl bg-red-600 font-semibold text-white disabled:opacity-40"
+              >
+                {delBusy ? 'Eliminando…' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
