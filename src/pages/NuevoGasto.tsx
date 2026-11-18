@@ -7,8 +7,11 @@ import { useFxRate } from '../hooks/useFxRate'
 import AmountInput from '../components/AmountInput'
 import CategoryPicker from '../components/CategoryPicker'
 import type { Currency, TxType } from '../lib/types'
+import { ChevronLeft } from 'lucide-react'
+import { Button, Icon, Segmented } from '../components/ui'
 
 const CUR_KEY = 'last_currency'
+const field = 'mt-1 h-12 w-full rounded-control border border-line-strong bg-surface px-4 text-[15px] font-normal text-fg outline-none transition-colors placeholder:text-fg-3 focus:border-accent'
 
 function today() {
   const d = new Date()
@@ -89,61 +92,54 @@ export default function NuevoGasto() {
     else done()
   }
 
-  if (loading) return <div className="p-6 text-slate-500">Cargando…</div>
+  if (loading) return <div className="p-4 text-[13px] text-fg-3">Cargando…</div>
   if (loadFailed) return (
-    <div className="space-y-4 p-6">
-      <p role="alert" className="rounded-xl bg-red-100 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{error}</p>
-      <button type="button" onClick={done} className="min-h-[48px] w-full rounded-xl border border-slate-300 font-semibold dark:border-slate-700">Volver</button>
+    <div className="space-y-4 p-4">
+      <p role="alert" className="rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-neg">{error}</p>
+      <Button type="button" variant="secondary" block onClick={done}>Volver</Button>
     </div>
   )
 
   return (
-    <div className="px-4 pt-4">
+    <div className="px-4 pt-4 pb-4">
       <header className="mb-4 flex items-center gap-2">
-        <button type="button" onClick={done} aria-label="Volver" className="grid h-11 w-11 place-items-center rounded-full text-2xl">‹</button>
-        <h1 className="text-xl font-bold">{editing ? 'Editar movimiento' : 'Nuevo movimiento'}</h1>
+        <button type="button" onClick={done} aria-label="Volver" className="-ml-2 grid h-11 w-11 place-items-center rounded-control text-fg-2 transition-colors hover:bg-raised"><Icon icon={ChevronLeft} size={20} /></button>
+        <h1 className="text-[28px] leading-8 font-medium tracking-[-0.01em]">{editing ? 'Editar movimiento' : 'Nuevo movimiento'}</h1>
       </header>
 
-      <div className="mb-4 flex rounded-full bg-slate-200 p-1 dark:bg-slate-800">
-        {([['expense', 'Gasto'], ['income', 'Ingreso']] as const).map(([t, l]) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => changeType(t)}
-            className={`min-h-[44px] flex-1 rounded-full text-sm font-semibold ${
-              type === t ? (t === 'expense' ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white') : 'text-slate-500'
-            }`}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Tipo"
+        className="mb-6"
+        value={type}
+        onChange={changeType}
+        options={[{ value: 'expense', label: 'Gasto' }, { value: 'income', label: 'Ingreso' }]}
+      />
 
       <AmountInput amount={amount} onAmountChange={setAmount} currency={currency} onCurrencyChange={changeCurrency} autoFocus={!editing} />
 
-      <h2 className="mb-2 mt-6 text-sm font-semibold text-slate-500">Categoría</h2>
+      <h2 className="mb-2 mt-6 text-[13px] leading-5 font-medium text-fg-2">Categoría</h2>
       <CategoryPicker categories={categories} type={type} value={categoryId} onChange={setCategoryId} />
 
-      <div className="mt-6 grid grid-cols-1 gap-3">
-        <label className="block text-sm font-semibold text-slate-500">
+      <div className="mt-6 grid grid-cols-1 gap-4">
+        <label className="block text-[13px] leading-5 font-medium text-fg-2">
           Fecha
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value || today())} className="mt-1 min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-4 font-normal text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value || today())} className={field} />
         </label>
-        <label className="block text-sm font-semibold text-slate-500">
+        <label className="block text-[13px] leading-5 font-medium text-fg-2">
           Nota (opcional)
-          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: almuerzo con Juan" className="mt-1 min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-4 font-normal text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: almuerzo con Juan" className={field} />
         </label>
       </div>
 
-      {error && <p role="alert" className="mt-4 rounded-xl bg-red-100 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{error}</p>}
+      {error && <p role="alert" className="mt-4 rounded-control border border-line bg-surface px-3 py-2 text-[13px] text-neg">{error}</p>}
 
-      <button type="button" onClick={save} disabled={saving} className="mt-5 min-h-[52px] w-full rounded-xl bg-emerald-600 text-base font-semibold text-white disabled:opacity-60">
+      <Button type="button" block onClick={save} disabled={saving} className="mt-6 h-12">
         {saving ? 'Guardando…' : 'Guardar'}
-      </button>
+      </Button>
       {editing && (
-        <button type="button" onClick={del} disabled={saving} className="mb-4 mt-3 min-h-[48px] w-full rounded-xl border border-red-300 font-semibold text-red-600 disabled:opacity-60 dark:border-red-900 dark:text-red-400">
+        <Button type="button" variant="danger" block onClick={del} disabled={saving} className="mt-3 h-12">
           Eliminar
-        </button>
+        </Button>
       )}
     </div>
   )

@@ -1,11 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Copy, Plus } from 'lucide-react'
 import BudgetBar from '../components/BudgetBar'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { CategoryIcon } from '../components/ui/CategoryIcon'
+import { Equiv, Money } from '../components/ui/Money'
+import { Icon } from '../components/ui/Icon'
+import { MonthSwitcher } from '../components/ui/MonthSwitcher'
+import { Segmented } from '../components/ui/Segmented'
+import { Sheet } from '../components/ui/Sheet'
+import { PageHeader } from '../components/ui/PageHeader'
 import { useBudgets } from '../hooks/useBudgets'
 import { useCategories } from '../hooks/useCategories'
 import { useFxRate } from '../hooks/useFxRate'
 import { useTransactions } from '../hooks/useTransactions'
-import { formatMoney } from '../lib/fx'
-import { budgetProgress, currentMonth, monthLabel, shiftMonth, spentByCategory } from '../lib/stats'
+import { convert, formatMoney } from '../lib/fx'
+import { budgetProgress, currentMonth, shiftMonth, spentByCategory } from '../lib/stats'
 import type { Budget, Currency } from '../lib/types'
 
 interface Draft { id?: string; category_id: string; amount: string; currency: Currency }
@@ -41,13 +51,7 @@ export default function Presupuestos() {
   const totalLimit = rows.reduce((s, r) => s + (r.p?.limit ?? 0), 0)
   const totalSpent = rows.reduce((s, r) => s + (r.p?.spent ?? 0), 0)
   const totalPct = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0
-
-  useEffect(() => {
-    if (!draft) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDraft(null) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [draft])
+  const totalBar = totalPct >= 100 ? 'bg-neg' : totalPct >= 80 ? 'bg-warn' : 'bg-accent'
 
   function openNew() {
     const free = expenseCats.find((c) => !budgets.some((b) => b.category_id === c.id))
@@ -96,148 +100,118 @@ export default function Presupuestos() {
     setBusy(false)
   }
 
+  const alertCls = 'rounded-control border border-line bg-surface p-3 text-[13px] leading-5 text-neg'
+  const field = 'mt-1 h-11 w-full rounded-control border border-line-strong bg-surface px-3 text-[15px] text-fg placeholder:text-fg-3'
+
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Presupuestos</h1>
+    <div>
+      <PageHeader title="Presupuestos" />
+      <div className="space-y-6 px-4 pb-6">
+        <MonthSwitcher month={month} onChange={setMonth} />
 
-      <div className="flex items-center justify-between rounded-2xl bg-white p-1 shadow-sm dark:bg-slate-800">
-        <button aria-label="Mes anterior" className="h-11 w-11 text-xl text-slate-700 dark:text-slate-200" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button>
-        <span className="font-semibold capitalize text-slate-900 dark:text-slate-100">{monthLabel(month)}</span>
-        <button aria-label="Mes siguiente" className="h-11 w-11 text-xl text-slate-700 dark:text-slate-200" onClick={() => setMonth(shiftMonth(month, 1))}>›</button>
-      </div>
-
-      <div className="rounded-2xl bg-teal-700 p-4 text-white shadow-sm">
-        <div className="text-sm opacity-80">Gastado sobre lo presupuestado</div>
-        <div className="mt-1 text-2xl font-bold">
-          {formatMoney(totalSpent, 'ARS')} <span className="text-base font-normal opacity-80">de {formatMoney(totalLimit, 'ARS')}</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/25">
-          <div className="h-full rounded-full bg-white" style={{ width: `${Math.min(100, totalPct)}%` }} />
-        </div>
-        <div className="mt-1 text-xs opacity-80">
-          {pendingFx && fxLoading ? 'Cargando cotización…' : pendingFx ? 'Cotización no disponible (presupuestos en USD excluidos)' : `${Math.round(totalPct)}% usado`}
-        </div>
-      </div>
-
-      {error && (
-        <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{error}</p>
-      )}
-      {msg && !draft && (
-        <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">{msg}</p>
-      )}
-
-      {loading ? (
-        <p className="text-center text-slate-500">Cargando…</p>
-      ) : rows.length === 0 ? (
-        <p className="py-6 text-center text-slate-500 dark:text-slate-400">No hay presupuestos para este mes.</p>
-      ) : (
-        <div className="space-y-3">
-          {rows.map(({ b, cat, p }) => p === null ? (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => openEdit(b)}
-              className="block min-h-11 w-full rounded-2xl bg-white p-3 text-left shadow-sm dark:bg-slate-800"
-            >
-              <span className="font-medium text-slate-800 dark:text-slate-100">
-                <span className="mr-1.5">{cat?.icon ?? '❔'}</span>{cat?.name ?? 'Sin categoría'}
-              </span>
-              <div className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                {formatMoney(b.amount, 'USD')} · {fxLoading ? 'Cargando cotización…' : 'Cotización no disponible'}
-              </div>
-            </button>
-          ) : (
-            <BudgetBar
-              key={b.id}
-              icon={cat?.icon ?? '❔'}
-              name={cat?.name ?? 'Sin categoría'}
-              {...p}
-              onClick={() => openEdit(b)}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <button onClick={openNew} className="h-12 flex-1 rounded-xl bg-teal-700 font-semibold text-white active:bg-teal-800">
-          + Agregar presupuesto
-        </button>
-        <button
-          onClick={copyPrev}
-          disabled={busy}
-          className="h-12 flex-1 rounded-xl border border-slate-300 font-medium text-slate-700 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
-        >
-          Copiar del mes anterior
-        </button>
-      </div>
-
-      {draft && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setDraft(null)}>
+        <Card>
+          <div className="text-[13px] leading-5 font-medium text-fg-2">Gastado sobre lo presupuestado</div>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
+            <Money amount={totalSpent} currency="ARS" className="text-[32px] leading-10 font-medium" />
+            <span className="num text-[15px] text-fg-2">de {formatMoney(totalLimit, 'ARS')}</span>
+          </div>
+          {fx !== null && <Equiv amount={convert(totalSpent, 'ARS', 'USD', fx)} currency="USD" />}
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="budget-dialog-title"
-            className="mx-auto w-full max-w-md space-y-3 rounded-t-3xl bg-white p-5 dark:bg-slate-900"
-            onClick={(e) => e.stopPropagation()}
+            className="mt-4 h-1.5 overflow-hidden rounded-full bg-raised"
+            role="progressbar" aria-label="Gastado sobre lo presupuestado"
+            aria-valuenow={Math.round(totalPct)} aria-valuemin={0} aria-valuemax={100}
           >
-            <h2 id="budget-dialog-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {draft.id ? 'Editar presupuesto' : 'Nuevo presupuesto'}
-            </h2>
-            <label className="block text-sm text-slate-600 dark:text-slate-300">
+            <div className={`h-full rounded-full ${totalBar}`} style={{ width: `${Math.min(100, totalPct)}%` }} />
+          </div>
+          <div className="mt-2 font-mono text-[12px] leading-4 text-fg-3">
+            {pendingFx && fxLoading ? 'Cargando cotización…' : pendingFx ? 'Cotización no disponible, no se suman los presupuestos en USD' : `${Math.round(totalPct)}% usado`}
+          </div>
+        </Card>
+
+        {error && <p role="alert" className={alertCls}>{error}</p>}
+        {msg && !draft && <p role="alert" className={alertCls}>{msg}</p>}
+
+        {loading ? (
+          <p className="text-center text-[13px] text-fg-3">Cargando…</p>
+        ) : rows.length === 0 ? (
+          <p className="py-6 text-center text-[15px] text-fg-3">No hay presupuestos para este mes</p>
+        ) : (
+          <Card pad={false} className="divide-y divide-line overflow-hidden">
+            {rows.map(({ b, cat, p }) => p === null ? (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => openEdit(b)}
+                className="flex min-h-11 w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-raised"
+              >
+                <CategoryIcon category={cat} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] leading-5">{cat?.name ?? 'Sin categoría'}</span>
+                  <span className="num mt-1 block font-mono text-[12px] leading-4 text-fg-3">
+                    {formatMoney(b.amount, 'USD')} · {fxLoading ? 'Cargando cotización…' : 'Cotización no disponible'}
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <BudgetBar
+                key={b.id}
+                category={cat}
+                name={cat?.name ?? 'Sin categoría'}
+                {...p}
+                onClick={() => openEdit(b)}
+              />
+            ))}
+          </Card>
+        )}
+
+        <div className="space-y-2">
+          <Button block onClick={openNew}><Icon icon={Plus} />Agregar presupuesto</Button>
+          <Button block variant="secondary" onClick={copyPrev} disabled={busy}><Icon icon={Copy} />Copiar del mes anterior</Button>
+        </div>
+      </div>
+
+      <Sheet open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? 'Editar presupuesto' : 'Nuevo presupuesto'}>
+        {draft && (
+          <div className="space-y-4">
+            <label className="block text-[13px] leading-5 text-fg-2">
               Categoría
               <select
                 value={draft.category_id}
                 disabled={!!draft.id}
                 onChange={(e) => setDraft({ ...draft, category_id: e.target.value })}
-                className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className={field}
               >
-                {expenseCats.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                {expenseCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>
-            <div className="flex gap-2">
-              <label className="block flex-1 text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex items-end gap-3">
+              <label className="block flex-1 text-[13px] leading-5 text-fg-2">
                 Monto
                 <input
                   inputMode="decimal"
                   value={draft.amount}
                   onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
                   placeholder="0"
-                  className="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  className={`${field} num`}
                 />
               </label>
-              <div className="text-sm text-slate-600 dark:text-slate-300">
-                Moneda
-                <div className="mt-1 flex h-11 overflow-hidden rounded-xl border border-slate-300 dark:border-slate-600">
-                  {(['ARS', 'USD'] as const).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setDraft({ ...draft, currency: c })}
-                      className={`px-4 font-medium ${draft.currency === c ? 'bg-teal-700 text-white' : 'text-slate-700 dark:text-slate-200'}`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <Segmented
+                label="Moneda"
+                value={draft.currency}
+                onChange={(c) => setDraft({ ...draft, currency: c })}
+                options={[{ value: 'ARS', label: 'ARS' }, { value: 'USD', label: 'USD' }]}
+                className="w-40"
+              />
             </div>
-            {msg && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{msg}</p>}
+            {msg && <p role="alert" className="text-[13px] leading-5 text-neg">{msg}</p>}
             <div className="flex gap-2 pt-1">
-              {draft.id && (
-                <button onClick={del} disabled={busy} className="h-12 rounded-xl px-4 font-medium text-red-600 disabled:opacity-50 dark:text-red-400">
-                  Eliminar
-                </button>
-              )}
-              <button onClick={() => setDraft(null)} className="h-12 flex-1 rounded-xl border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200">
-                Cancelar
-              </button>
-              <button onClick={save} disabled={busy} className="h-12 flex-1 rounded-xl bg-teal-700 font-semibold text-white disabled:opacity-50">
-                Guardar
-              </button>
+              {draft.id && <Button variant="danger" onClick={del} disabled={busy}>Eliminar</Button>}
+              <Button variant="secondary" className="flex-1" onClick={() => setDraft(null)}>Cancelar</Button>
+              <Button className="flex-1" onClick={save} disabled={busy}>Guardar</Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
     </div>
   )
 }

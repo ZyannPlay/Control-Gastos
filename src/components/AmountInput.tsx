@@ -1,4 +1,5 @@
 import type { Currency } from '../lib/types'
+import { Segmented } from './ui'
 
 interface Props {
   amount: string
@@ -18,7 +19,7 @@ export default function AmountInput({ amount, onAmountChange, currency, onCurren
   }
   return (
     <div className="flex items-center gap-3">
-      <span className="text-3xl font-semibold text-slate-400">{currency === 'ARS' ? '$' : 'US$'}</span>
+      <span className="num text-[40px] leading-[48px] font-medium text-fg-3">{currency === 'ARS' ? '$' : 'US$'}</span>
       <input
         type="text"
         inputMode="decimal"
@@ -27,22 +28,15 @@ export default function AmountInput({ amount, onAmountChange, currency, onCurren
         value={amount}
         onChange={(e) => handle(e.target.value)}
         aria-label="Monto"
-        className="min-w-0 flex-1 bg-transparent text-5xl font-bold outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700"
+        className="num h-12 min-w-0 flex-1 bg-transparent text-[40px] leading-[48px] font-medium tracking-[-0.02em] text-fg outline-none placeholder:text-fg-3"
       />
-      <div className="flex shrink-0 rounded-full bg-slate-200 p-1 dark:bg-slate-800" role="group" aria-label="Moneda">
-        {(['ARS', 'USD'] as const).map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => onCurrencyChange(c)}
-            className={`min-h-[44px] min-w-[52px] rounded-full px-3 text-sm font-semibold ${
-              currency === c ? 'bg-white text-emerald-700 shadow dark:bg-slate-600 dark:text-white' : 'text-slate-500'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="Moneda"
+        className="w-[120px] shrink-0"
+        value={currency}
+        onChange={onCurrencyChange}
+        options={[{ value: 'ARS', label: 'ARS' }, { value: 'USD', label: 'USD' }]}
+      />
     </div>
   )
 }

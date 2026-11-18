@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Category, Transaction } from '../lib/types'
-import { convert, formatMoney } from '../lib/fx'
+import { convert } from '../lib/fx'
+import { CategoryIcon, Equiv, Money } from './ui'
 
 export function parseLocalDate(s: string): Date {
   const [y, m, d] = s.split('-').map(Number)
@@ -8,6 +9,7 @@ export function parseLocalDate(s: string): Date {
 }
 
 const fmtShort = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
+const fmtMeta = (s: string) => fmtShort.format(parseLocalDate(s)).replace('.', '')
 
 export default function TransactionItem({ tx, category }: { tx: Transaction; category?: Category | null }) {
   const other = tx.currency === 'ARS' ? 'USD' : 'ARS'
@@ -20,30 +22,23 @@ export default function TransactionItem({ tx, category }: { tx: Transaction; cat
   return (
     <Link
       to={`/editar/${tx.id}`}
-      className="flex min-h-[56px] items-center gap-3 rounded-2xl bg-white px-3 py-2 active:bg-slate-100 dark:bg-slate-900 dark:active:bg-slate-800"
+      className="flex h-16 items-center gap-3 px-4 transition-colors hover:bg-raised active:bg-raised"
     >
-      <span
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-xl"
-        style={{ backgroundColor: (category?.color ?? '#94a3b8') + '33' }}
-      >
-        {category?.icon ?? '❓'}
-      </span>
+      <CategoryIcon category={category} />
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5 text-sm font-medium">
+        <span className="flex items-center gap-2 text-[15px] leading-5">
           <span className="truncate">{tx.note || category?.name || 'Sin categoría'}</span>
           {badge && (
-            <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800 dark:bg-teal-950 dark:text-teal-300">{badge}</span>
+            <span className="shrink-0 rounded-tag bg-raised px-1.5 py-0.5 font-mono text-[11px] leading-4 text-fg-3">{badge}</span>
           )}
         </span>
-        <span className="block truncate text-xs text-slate-500">
-          {tx.note && category ? `${category.name} · ` : ''}{fmtShort.format(parseLocalDate(tx.date))}
+        <span className="block truncate text-[13px] leading-5 text-fg-3">
+          {tx.note && category ? `${category.name} · ` : ''}{fmtMeta(tx.date)}
         </span>
       </span>
-      <span className="shrink-0 text-right">
-        <span className={`block text-sm font-semibold ${isExp ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-          {isExp ? '-' : '+'}{formatMoney(tx.amount, tx.currency)}
-        </span>
-        <span className="block text-xs text-slate-500">{formatMoney(eq, other)}</span>
+      <span className="flex shrink-0 flex-col items-end">
+        <Money amount={tx.amount} currency={tx.currency} kind={isExp ? 'expense' : 'income'} className="text-[15px] leading-5 font-medium" />
+        <Equiv amount={eq} currency={other} />
       </span>
     </Link>
   )

@@ -34,12 +34,12 @@ export default function App() {
       </Routes>
     )
   }
-  if (loading) return <div className="grid h-dvh place-items-center text-slate-500">Cargando…</div>
+  if (loading) return <div className="grid h-dvh place-items-center text-[13px] text-fg-3">Cargando…</div>
   // Sin sesión: siempre en '/', así al volver a entrar no cae en una pantalla vieja.
   if (!user) return pathname === '/' ? <Login /> : <Navigate to="/" replace />
   return (
-    <div className="mx-auto min-h-dvh max-w-md pb-20">
-      <Suspense fallback={<div className="p-6 text-center text-slate-500">Cargando…</div>}>
+    <div className="mx-auto min-h-dvh max-w-md bg-bg pb-24">
+      <Suspense fallback={<div className="p-6 text-center text-[13px] text-fg-3">Cargando…</div>}>
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/nuevo" element={<NuevoGasto />} />

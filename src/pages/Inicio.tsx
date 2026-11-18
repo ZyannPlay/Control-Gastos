@@ -8,6 +8,9 @@ import { monthLabel } from '../lib/stats'
 import { useRecurring } from '../hooks/useRecurring'
 import { nextOccurrence } from '../lib/recurring'
 import { parseLocalDate } from '../components/TransactionItem'
+import { Plus, Repeat, Settings } from 'lucide-react'
+import { Card, CategoryIcon, Equiv, Icon, Money, SectionTitle } from '../components/ui'
+import { sentence } from '../lib/format'
 
 const fmtDay = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
 
@@ -27,7 +30,8 @@ export default function Inicio() {
   const income = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + toArs(t), 0)
   const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + toArs(t), 0)
   const balance = income - expense
-  const usd = (ars: number) => (rate ? formatMoney(convert(ars, 'ARS', 'USD', rate.venta), 'USD') : '—')
+  const usd = (ars: number) => (rate ? convert(ars, 'ARS', 'USD', rate.venta) : null)
+  const eqArs = (ars: number, cls = '') => { const u = usd(ars); return u === null ? <span className={`font-mono text-[12px] leading-4 text-fg-3 ${cls}`}>≈ —</span> : <Equiv amount={u} currency="USD" className={cls} /> }
 
   const monthTitle = monthLabel(month)
   const recent = [...transactions]
@@ -43,93 +47,96 @@ export default function Inicio() {
     .slice(0, 3)
 
   return (
-    <div className="px-4 pt-4">
+    <div className="px-4 pt-4 pb-4">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs text-slate-500">Mis Gastos</p>
-          <h1 className="text-2xl font-bold capitalize">{monthTitle}</h1>
+          <p className="text-[13px] leading-5 text-fg-3">Mis Gastos</p>
+          <h1 className="text-[28px] leading-8 font-medium tracking-[-0.01em]">{sentence(monthTitle)}</h1>
         </div>
-        <Link to="/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center rounded-full bg-slate-200 dark:bg-slate-800">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-          </svg>
+        <Link to="/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center rounded-control text-fg-2 transition-colors hover:bg-raised">
+          <Icon icon={Settings} size={20} />
         </Link>
       </header>
 
-      <section className="rounded-3xl bg-emerald-600 p-5 text-white shadow-lg">
-        <p className="text-sm opacity-80">Saldo del mes</p>
-        <p className="text-4xl font-bold">{formatMoney(balance, 'ARS')}</p>
-        <p className="text-sm opacity-80">≈ {usd(balance)}</p>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white/15 p-3">
-            <p className="text-xs opacity-80">Ingresos</p>
-            <p className="font-semibold">{formatMoney(income, 'ARS')}</p>
-            <p className="text-xs opacity-70">≈ {usd(income)}</p>
-          </div>
-          <div className="rounded-2xl bg-white/15 p-3">
-            <p className="text-xs opacity-80">Gastos</p>
-            <p className="font-semibold">{formatMoney(expense, 'ARS')}</p>
-            <p className="text-xs opacity-70">≈ {usd(expense)}</p>
-          </div>
+      <Card className="flex items-start justify-between gap-4">
+        <section aria-label="Saldo del mes" className="min-w-0">
+          <p className="text-[13px] leading-5 text-fg-2">Saldo del mes</p>
+          <Money amount={balance} currency="ARS" className="block text-[40px] leading-[44px] font-medium tracking-[-0.02em]" />
+          {eqArs(balance, 'mt-1 block')}
+        </section>
+        <div className="shrink-0 rounded-control bg-raised px-3 py-2" aria-label="Dólar blue">
+          <p className="mb-1 text-[12px] leading-4 text-fg-3">Dólar blue</p>
+          <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 font-mono text-[13px] leading-4">
+            <dt className="text-fg-3">Compra</dt>
+            <dd className="num text-right text-fg">{rate ? formatMoney(rate.compra, 'ARS') : '—'}</dd>
+            <dt className="text-fg-3">Venta</dt>
+            <dd className="num text-right text-fg">{rate ? formatMoney(rate.venta, 'ARS') : '—'}</dd>
+          </dl>
         </div>
-      </section>
+      </Card>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="rounded-full bg-sky-100 px-3 py-1.5 text-xs font-medium text-sky-800 dark:bg-sky-950 dark:text-sky-300">
-          💵 Blue: {rate ? `${formatMoney(rate.compra, 'ARS')} / ${formatMoney(rate.venta, 'ARS')}` : 'cargando…'}
-        </span>
-        <Link to="/nuevo" className="grid min-h-[44px] place-items-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900">
-          + Agregar gasto
-        </Link>
-      </div>
+      <Card pad={false} className="mt-3 grid grid-cols-2 divide-x divide-line">
+        <div className="p-4">
+          <p className="text-[13px] leading-5 text-fg-2">Ingresos</p>
+          <Money amount={income} currency="ARS" kind="income" className="block text-[17px] leading-6 font-medium" />
+          {eqArs(income, 'block')}
+        </div>
+        <div className="p-4">
+          <p className="text-[13px] leading-5 text-fg-2">Gastos</p>
+          <Money amount={expense} currency="ARS" kind="expense" className="block text-[17px] leading-6 font-medium" />
+          {eqArs(expense, 'block')}
+        </div>
+      </Card>
+
+      <Link to="/nuevo" className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-accent px-4 text-[15px] font-medium text-on-accent transition-[background-color,opacity,transform] duration-150 ease-soft hover:opacity-90 active:scale-[0.98]">
+        <Icon icon={Plus} /> Agregar gasto
+      </Link>
 
       {rules.length === 0 ? (
-        <Link to="/fijos" className="mt-4 block rounded-2xl bg-white p-3 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-          🔁 Cargá tus gastos fijos (alquiler, servicios) y compras en cuotas <span className="text-emerald-600 dark:text-emerald-400">›</span>
+        <Link to="/fijos" className="mt-6 flex min-h-14 items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 text-[15px] text-fg-2 transition-colors hover:bg-raised">
+          <Icon icon={Repeat} />
+          <span className="flex-1">Cargá tus gastos fijos y compras en cuotas</span>
         </Link>
       ) : upcoming.length > 0 && (
-        <section className="mt-4 rounded-2xl bg-white p-3 dark:bg-slate-900">
-          <div className="mb-1 flex items-center justify-between">
-            <h2 className="font-semibold">Próximos fijos y cuotas</h2>
-            <Link to="/fijos" className="grid min-h-[44px] place-items-center text-sm text-emerald-600 dark:text-emerald-400">Ver todos</Link>
-          </div>
-          <ul className="space-y-1">
-            {upcoming.map(({ r, next }) => {
-              const cat = r.category_id ? catById.get(r.category_id) : null
-              return (
-                <li key={r.id} className="flex items-center gap-3 text-sm">
-                  <span className="text-xl">{cat?.icon ?? '❓'}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{r.note || cat?.name || 'Sin categoría'}</span>
-                    <span className="block text-xs text-slate-500">
-                      {fmtDay.format(parseLocalDate(next.date))}{next.installment_number ? ` · Cuota ${next.installment_number}${r.installments_total ? `/${r.installments_total}` : ''}` : ''}
+        <section className="mt-6">
+          <SectionTitle action={<Link to="/fijos" className="grid min-h-11 place-items-center text-[13px] text-accent-ink transition-colors hover:text-fg">Ver todos</Link>}>Próximos fijos y cuotas</SectionTitle>
+          <Card pad={false}>
+            <ul className="divide-y divide-line">
+              {upcoming.map(({ r, next }) => {
+                const cat = r.category_id ? catById.get(r.category_id) : null
+                const other = r.currency === 'ARS' ? 'USD' : 'ARS'
+                return (
+                  <li key={r.id} className="flex h-16 items-center gap-3 px-4">
+                    <CategoryIcon category={cat} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] leading-5">{r.note || cat?.name || 'Sin categoría'}</span>
+                      <span className="block truncate text-[13px] leading-5 text-fg-3">
+                        {fmtDay.format(parseLocalDate(next.date))}{next.installment_number ? ` · Cuota ${next.installment_number}${r.installments_total ? `/${r.installments_total}` : ''}` : ''}
+                      </span>
                     </span>
-                  </span>
-                  <span className={`shrink-0 font-semibold ${r.type === 'expense' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                    {r.type === 'expense' ? '-' : '+'}{formatMoney(r.amount, r.currency)}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
+                    <span className="flex shrink-0 flex-col items-end">
+                      <Money amount={r.amount} currency={r.currency} kind={r.type} className="text-[15px] leading-5 font-medium" />
+                      {rate && <Equiv amount={convert(r.amount, r.currency, other, rate.venta)} currency={other} />}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </Card>
         </section>
       )}
 
       <section className="mt-6">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold">Últimos movimientos</h2>
-          <Link to="/movimientos" className="text-sm text-emerald-600 dark:text-emerald-400">Ver todos</Link>
-        </div>
-        {(error ?? catError) && <p role="alert" className="text-sm text-red-600">{error ?? catError}</p>}
+        <SectionTitle action={<Link to="/movimientos" className="grid min-h-11 place-items-center text-[13px] text-accent-ink transition-colors hover:text-fg">Ver todos</Link>}>Últimos movimientos</SectionTitle>
+        {(error ?? catError) && <p role="alert" className="mb-2 text-[13px] text-neg">{error ?? catError}</p>}
         {loading ? (
-          <p className="text-sm text-slate-500">Cargando…</p>
+          <p className="text-[13px] text-fg-3">Cargando…</p>
         ) : recent.length === 0 ? (
-          <p className="rounded-2xl bg-white p-4 text-center text-sm text-slate-500 dark:bg-slate-900">Todavía no cargaste nada este mes.</p>
+          <Card className="text-center text-[15px] text-fg-2">Todavía no cargaste nada este mes</Card>
         ) : (
-          <div className="space-y-2">
+          <Card pad={false} className="divide-y divide-line overflow-hidden">
             {recent.map((t) => <TransactionItem key={t.id} tx={t} category={t.category_id ? catById.get(t.category_id) : null} />)}
-          </div>
+          </Card>
         )}
       </section>
     </div>
