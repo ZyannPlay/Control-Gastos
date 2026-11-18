@@ -171,7 +171,7 @@ export default function Fijos() {
                   <div className="h-full rounded-full bg-teal-600" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-1 flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>Cuota {Math.min(prog.total, prog.paid + (next ? 1 : 0))} de {prog.total}</span>
+                  <span>{prog.paid} de {prog.total} cuotas pagas{next?.installment_number ? ` · próxima: ${next.installment_number}` : ""}</span>
                   <span>Total: {formatMoney(Math.round(r.amount * prog.total * 100) / 100, r.currency)}</span>
                 </div>
               </div>
